@@ -31,7 +31,7 @@ export default function Sidebar() {
 
   const containerStyle = isMobile
     ? {
-        position: 'absolute', inset: 0, zIndex: 10,
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10,
         background: theme.isDark ? theme.sidebarBg : 'white',
         display: 'flex', flexDirection: 'column',
         transform: activeChat ? 'translateX(-100%)' : 'translateX(0)',
@@ -39,7 +39,7 @@ export default function Sidebar() {
       }
     : {
         width: 340, minWidth: 340,
-        height: '100dvh',
+        height: '100%',
         background: theme.isDark ? theme.sidebarBg : 'white',
         borderRight: `1px solid ${theme.isDark ? '#333' : '#e5e7eb'}`,
         display: 'flex', flexDirection: 'column',

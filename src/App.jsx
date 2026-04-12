@@ -3,7 +3,6 @@ import { useUser, useAuth, SignIn } from '@clerk/clerk-react'
 import useStore from './store/useStore'
 import { setTokenGetter } from './api/client'
 import { useSocket } from './hooks/useSocket'
-import useIsMobile from './hooks/useIsMobile'
 import { ThemeContext } from './theme/ThemeContext'
 import Sidebar from './components/Sidebar/Sidebar'
 import ChatWindow from './components/Chat/ChatWindow'
@@ -24,7 +23,6 @@ export default function App() {
   }, [isSignedIn, currentUser, syncing])
 
   useSocket(currentUser?._id)
-  const isMobile = useIsMobile()
 
   if (!isLoaded) {
     return (
@@ -66,10 +64,8 @@ export default function App() {
   return (
     <ThemeContext.Provider value={theme}>
       <div style={{
-        display: 'flex', width: '100%', height: '100dvh',
+        display: 'flex', width: '100%', height: '100%',
         background: theme.background,
-        position: isMobile ? 'relative' : undefined,
-        overflow: isMobile ? 'hidden' : undefined,
       }}>
         <Sidebar />
         <ChatWindow />
