@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useClerk } from '@clerk/clerk-react'
 import useStore from '../../store/useStore'
 import { useTheme } from '../../theme/ThemeContext'
+import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
 import ChatList from './ChatList'
 import FriendList from '../Friends/FriendList'
@@ -16,9 +17,10 @@ const tabs = [
 ]
 
 export default function Sidebar() {
-  const { currentUser, activeTab, setActiveTab, logout } = useStore()
+  const { currentUser, activeTab, setActiveTab, logout, activeChat } = useStore()
   const { signOut } = useClerk()
   const theme = useTheme()
+  const isMobile = useIsMobile()
   const [showProfile, setShowProfile] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
 
@@ -27,14 +29,24 @@ export default function Sidebar() {
     await signOut()
   }
 
+  const containerStyle = isMobile
+    ? {
+        position: 'absolute', inset: 0, zIndex: 10,
+        background: theme.isDark ? theme.sidebarBg : 'white',
+        display: 'flex', flexDirection: 'column',
+        transform: activeChat ? 'translateX(-100%)' : 'translateX(0)',
+        transition: 'transform 0.3s ease',
+      }
+    : {
+        width: 340, minWidth: 340,
+        height: '100dvh',
+        background: theme.isDark ? theme.sidebarBg : 'white',
+        borderRight: `1px solid ${theme.isDark ? '#333' : '#e5e7eb'}`,
+        display: 'flex', flexDirection: 'column',
+      }
+
   return (
-    <div style={{
-      width: 340, minWidth: 340,
-      height: '100vh',
-      background: theme.isDark ? theme.sidebarBg : 'white',
-      borderRight: `1px solid ${theme.isDark ? '#333' : '#e5e7eb'}`,
-      display: 'flex', flexDirection: 'column',
-    }}>
+    <div style={containerStyle}>
       {/* Header */}
       <div style={{ padding: '16px 16px 0', background: theme.sidebarHeaderGradient }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -57,6 +69,7 @@ export default function Sidebar() {
                 background: 'rgba(255,255,255,0.2)',
                 padding: '6px 10px', borderRadius: 20,
                 color: 'white', fontSize: 14,
+                minHeight: 44, minWidth: 44,
                 transition: 'background 0.2s',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
@@ -70,6 +83,7 @@ export default function Sidebar() {
                 background: 'rgba(255,255,255,0.2)',
                 padding: '6px 12px', borderRadius: 20,
                 color: 'white', fontSize: 12, fontWeight: 600,
+                minHeight: 44,
                 transition: 'background 0.2s',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}

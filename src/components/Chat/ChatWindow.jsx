@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import useStore from '../../store/useStore'
 import { useTheme } from '../../theme/ThemeContext'
+import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
 import MessageBubble from './MessageBubble'
 import GroupInfoPanel from '../Groups/GroupInfoPanel'
 
 export default function ChatWindow() {
-  const { currentUser, activeChat, getMessages, sendMessage, messagesLoading } = useStore()
+  const { currentUser, activeChat, setActiveChat, getMessages, sendMessage, messagesLoading } = useStore()
   const theme = useTheme()
+  const isMobile = useIsMobile()
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
@@ -31,6 +33,17 @@ export default function ChatWindow() {
   const headerBg     = theme.isDark ? (theme.cardBg || '#252525') : 'white'
 
   if (!activeChat) {
+    if (isMobile) {
+      // Off-screen on mobile — render empty placeholder so transition works
+      return (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 10,
+          background: theme.chatBg,
+          transform: 'translateX(100%)',
+          transition: 'transform 0.3s ease',
+        }} />
+      )
+    }
     return (
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
@@ -110,8 +123,18 @@ export default function ChatWindow() {
     return readBy.filter(id => id?.toString() !== senderId?.toString()).length
   }
 
+  const containerStyle = isMobile
+    ? {
+        position: 'absolute', inset: 0, zIndex: 10,
+        display: 'flex', flexDirection: 'column',
+        background: theme.chatBg,
+        transform: 'translateX(0)',
+        transition: 'transform 0.3s ease',
+      }
+    : { flex: 1, display: 'flex', flexDirection: 'column', background: theme.chatBg, overflow: 'hidden' }
+
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: theme.chatBg, overflow: 'hidden' }}>
+    <div style={containerStyle}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
@@ -120,6 +143,19 @@ export default function ChatWindow() {
         borderBottom: `1px solid ${borderColor}`,
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
       }}>
+        {isMobile && (
+          <button
+            onClick={() => setActiveChat(null)}
+            style={{
+              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+              background: theme.isDark ? '#2d2d2d' : '#f3f4f6',
+              color: textPrimary, fontSize: 20,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            ←
+          </button>
+        )}
         <Avatar user={chatAvatar} size={42} showStatus={activeChat.type === 'dm'} />
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: textPrimary }}>{chatName}</div>

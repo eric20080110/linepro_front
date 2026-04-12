@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import useStore from '../../store/useStore'
 import { useTheme } from '../../theme/ThemeContext'
+import useIsMobile from '../../hooks/useIsMobile'
 import { THEMES } from '../../theme/themes'
 import { messagesApi } from '../../api/messages'
 
@@ -15,6 +16,7 @@ const THEME_SWATCHES = {
 export default function SettingsPanel({ onClose }) {
   const { theme: currentTheme, setTheme, friends, groups, currentUser, getDMRoomId, deleteChatMessages, activeChat, setActiveChat } = useStore()
   const theme = useTheme()
+  const isMobile = useIsMobile()
   const [confirmDelete, setConfirmDelete] = useState(null) // { type, id, name, chatKey }
   const [deleting, setDeleting] = useState(false)
   const [activeSection, setActiveSection] = useState('theme')
@@ -74,16 +76,16 @@ export default function SettingsPanel({ onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      position: isMobile ? 'absolute' : 'fixed', inset: 0,
       background: 'rgba(0,0,0,0.55)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
         background: theme.isDark ? theme.cardBg : 'white',
-        borderRadius: 20,
-        width: 640,
-        height: 480,
+        borderRadius: isMobile ? '20px 20px 0 0' : 20,
+        width: isMobile ? '100%' : 640,
+        height: isMobile ? '92%' : 480,
         display: 'flex',
         overflow: 'hidden',
         boxShadow: '0 24px 80px rgba(0,0,0,0.3)',
@@ -91,7 +93,7 @@ export default function SettingsPanel({ onClose }) {
 
         {/* Left nav */}
         <div style={{
-          width: 180,
+          width: isMobile ? 140 : 180,
           background: theme.isDark ? '#1e1e1e' : '#f9fafb',
           borderRight: `1px solid ${theme.isDark ? '#333' : '#e5e7eb'}`,
           padding: '20px 12px',
@@ -228,7 +230,7 @@ export default function SettingsPanel({ onClose }) {
       {/* Delete confirm dialog */}
       {confirmDelete && (
         <div style={{
-          position: 'fixed', inset: 0,
+          position: isMobile ? 'absolute' : 'fixed', inset: 0,
           background: 'rgba(0,0,0,0.6)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 2000,

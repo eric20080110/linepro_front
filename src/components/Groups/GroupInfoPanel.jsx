@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import useStore from '../../store/useStore'
+import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
 
 export default function GroupInfoPanel({ group: initialGroup, onClose }) {
   const { currentUser, friends, groups, addGroupMembers, leaveGroup, setActiveChat } = useStore()
+  const isMobile = useIsMobile()
   const [showAddMember, setShowAddMember] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
   const [adding, setAdding] = useState(false)
@@ -47,14 +49,17 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      position: isMobile ? 'absolute' : 'fixed', inset: 0,
       background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        background: 'white', borderRadius: 20, width: 400,
-        maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+        background: 'white',
+        borderRadius: isMobile ? '20px 20px 0 0' : 20,
+        width: isMobile ? '100%' : 400,
+        maxHeight: isMobile ? '92%' : '80vh',
+        display: 'flex', flexDirection: 'column',
         overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         position: 'relative',
       }} onClick={e => e.stopPropagation()}>
@@ -66,8 +71,8 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
           <button onClick={onClose} style={{
             position: 'absolute', top: 16, right: 20,
             background: 'rgba(255,255,255,0.2)', color: 'white',
-            borderRadius: '50%', width: 30, height: 30,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+            borderRadius: '50%', width: 44, height: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
           }}>×</button>
           <div style={{
             width: 64, height: 64, borderRadius: '50%',

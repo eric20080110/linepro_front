@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import useStore from '../../store/useStore'
 import { usersApi } from '../../api/users'
+import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
 
 export default function AddFriendModal({ onClose }) {
   const { currentUser, friends, sendFriendRequest } = useStore()
+  const isMobile = useIsMobile()
   const [search, setSearch] = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
@@ -41,14 +43,17 @@ export default function AddFriendModal({ onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      position: isMobile ? 'absolute' : 'fixed', inset: 0,
       background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        background: 'white', borderRadius: 20, width: 380,
-        maxHeight: '70vh', display: 'flex', flexDirection: 'column',
+        background: 'white',
+        borderRadius: isMobile ? '20px 20px 0 0' : 20,
+        width: isMobile ? '100%' : 380,
+        maxHeight: isMobile ? '85%' : '70vh',
+        display: 'flex', flexDirection: 'column',
         overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: '24px 24px 16px' }}>

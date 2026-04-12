@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import useStore from '../../store/useStore'
+import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
 
 export default function ProfilePanel({ onClose }) {
   const { currentUser, updateProfile } = useStore()
+  const isMobile = useIsMobile()
   const [name, setName] = useState(currentUser?.name || '')
   const [statusMsg, setStatusMsg] = useState(currentUser?.statusMessage || '')
   const [saving, setSaving] = useState(false)
@@ -20,14 +22,16 @@ export default function ProfilePanel({ onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      position: isMobile ? 'absolute' : 'fixed', inset: 0,
       background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
       zIndex: 1000,
     }} onClick={onClose}>
       <div style={{
-        background: 'white', borderRadius: 20,
-        padding: 32, width: 360,
+        background: 'white',
+        borderRadius: isMobile ? '20px 20px 0 0' : 20,
+        padding: 32,
+        width: isMobile ? '100%' : 360,
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
