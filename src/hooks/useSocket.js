@@ -1,12 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { io } from 'socket.io-client'
 import useStore from '../store/useStore'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export function useSocket(mongoUserId) {
-  const socketRef = useRef(null)
-
   useEffect(() => {
     if (!mongoUserId) return
 
@@ -14,10 +12,16 @@ export function useSocket(mongoUserId) {
       auth: { userId: mongoUserId },
       transports: ['websocket', 'polling'],
     })
-    socketRef.current = socket
+
+    // Store socket reference so setActiveChat can join rooms
+    useStore.getState().setSocket(socket)
 
     socket.on('new_message', (message) => {
       useStore.getState().appendMessage(message)
+    })
+
+    socket.on('messages_read', (payload) => {
+      useStore.getState().handleMessagesRead(payload)
     })
 
     socket.on('friend_request_received', ({ from }) => {
@@ -42,9 +46,7 @@ export function useSocket(mongoUserId) {
 
     return () => {
       socket.disconnect()
-      socketRef.current = null
+      useStore.getState().setSocket(null)
     }
   }, [mongoUserId])
-
-  return socketRef
 }

@@ -37,14 +37,23 @@ const useStore = create((set, get) => ({
     set({ currentUser: user })
   },
 
-  logout: () => set({
-    currentUser: null,
-    activeChat: null,
-    friends: [],
-    friendRequests: [],
-    groups: [],
-    messages: {},
-  }),
+  logout: () => {
+    const { socket } = get()
+    if (socket) socket.disconnect()
+    set({
+      currentUser: null,
+      activeChat: null,
+      friends: [],
+      friendRequests: [],
+      groups: [],
+      messages: {},
+      socket: null,
+    })
+  },
+
+  // ─── Socket reference ────────────────────────────────────────────────────
+  socket: null,
+  setSocket: (socket) => set({ socket }),
 
   // ─── Friends ─────────────────────────────────────────────────────────────
   friends: [],
@@ -178,6 +187,18 @@ const useStore = create((set, get) => ({
   activeChat: null,
 
   setActiveChat: async (chat) => {
+    if (!chat) { set({ activeChat: null }); return }
+    const { socket, currentUser } = get()
+
+    // Join the socket room so we receive new_message events
+    if (socket) {
+      if (chat.type === 'dm') {
+        socket.emit('join_dm', { partnerId: chat.id })
+      } else {
+        socket.emit('join_group', { groupId: chat.id })
+      }
+    }
+
     set({ activeChat: chat, messagesLoading: true })
     try {
       let msgs = []
@@ -186,15 +207,80 @@ const useStore = create((set, get) => ({
       } else {
         msgs = await messagesApi.getGroup(chat.id)
       }
-      const key = chat.type === 'dm' ? getDMRoomId(get().currentUser._id, chat.id) : `group:${chat.id}`
+      const key = chat.type === 'dm'
+        ? getDMRoomId(currentUser._id, chat.id)
+        : `group:${chat.id}`
       set(state => ({
         messages: { ...state.messages, [key]: msgs },
         messagesLoading: false,
       }))
+
+      // Mark messages as read after loading
+      get().markMessagesRead(chat)
     } catch (err) {
       console.error('fetchMessages failed:', err)
       set({ messagesLoading: false })
     }
+  },
+
+  markMessagesRead: async (chat) => {
+    const { currentUser } = get()
+    if (!chat || !currentUser) return
+    try {
+      if (chat.type === 'dm') {
+        await messagesApi.markDMRead(chat.id)
+      } else {
+        await messagesApi.markGroupRead(chat.id)
+      }
+      // Update local readBy state
+      const key = chat.type === 'dm'
+        ? getDMRoomId(currentUser._id, chat.id)
+        : `group:${chat.id}`
+      set(state => ({
+        messages: {
+          ...state.messages,
+          [key]: (state.messages[key] || []).map(msg => {
+            const senderId = msg.senderId?._id || msg.senderId
+            if (senderId?.toString() !== currentUser._id?.toString()) {
+              const alreadyRead = (msg.readBy || []).some(
+                id => id?.toString() === currentUser._id?.toString()
+              )
+              if (!alreadyRead) {
+                return { ...msg, readBy: [...(msg.readBy || []), currentUser._id] }
+              }
+            }
+            return msg
+          }),
+        },
+      }))
+    } catch (_) { /* silent */ }
+  },
+
+  // Called via socket 'messages_read' event — update readBy on affected messages
+  handleMessagesRead: ({ readerId, groupId, type }) => {
+    const { currentUser } = get()
+    if (!currentUser) return
+    let key
+    if (type === 'dm') {
+      // The reader just read messages in their DM with us
+      key = getDMRoomId(currentUser._id.toString(), readerId.toString())
+    } else {
+      key = `group:${groupId}`
+    }
+    set(state => ({
+      messages: {
+        ...state.messages,
+        [key]: (state.messages[key] || []).map(msg => {
+          const alreadyRead = (msg.readBy || []).some(
+            id => id?.toString() === readerId?.toString()
+          )
+          if (!alreadyRead) {
+            return { ...msg, readBy: [...(msg.readBy || []), readerId] }
+          }
+          return msg
+        }),
+      },
+    }))
   },
 
   getMessages: () => {

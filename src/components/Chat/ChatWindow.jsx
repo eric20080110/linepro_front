@@ -25,10 +25,11 @@ export default function ChatWindow() {
     setShowInfo(false)
   }, [activeChat?.id])
 
-  const textPrimary = theme.isDark ? '#f0f0f0' : '#1a1a1a'
-  const textSecondary = theme.isDark ? '#9ca3af' : '#6b7280'
-  const borderColor = theme.isDark ? '#333' : '#e5e7eb'
-  const headerBg = theme.isDark ? theme.cardBg || '#252525' : 'white'
+  const textPrimary  = theme.textPrimary  || '#1a1a1a'
+  const textSecondary = theme.textSecondary || '#6b7280'
+  const borderColor  = theme.borderColor  || '#e5e7eb'
+  const headerBg     = theme.isDark ? (theme.cardBg || '#252525') : 'white'
+
   if (!activeChat) {
     return (
       <div style={{
@@ -45,11 +46,11 @@ export default function ChatWindow() {
     )
   }
 
-  const chatName = activeChat.type === 'dm' ? activeChat.user.name : activeChat.group.name
+  const chatName     = activeChat.type === 'dm' ? activeChat.user.name : activeChat.group.name
   const chatSubtitle = activeChat.type === 'dm'
     ? (activeChat.user.statusMessage || (activeChat.user.status === 'online' ? '線上' : '離線'))
     : `${activeChat.group.members?.length || 0} 位成員`
-  const chatAvatar = activeChat.type === 'dm'
+  const chatAvatar   = activeChat.type === 'dm'
     ? activeChat.user
     : { name: activeChat.group.name, avatarColor: activeChat.group.avatarColor }
 
@@ -74,18 +75,40 @@ export default function ChatWindow() {
     }
   }
 
+  // ─── Build display list ───────────────────────────────────────────────────
+  // Find the index of the last message sent by me (for 已讀 indicator)
+  const lastMyMsgIndex = (() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const senderId = messages[i].senderId?._id || messages[i].senderId
+      if (senderId?.toString() === currentUser._id?.toString()) return i
+    }
+    return -1
+  })()
+
   // Group messages by date
   const groupedMessages = []
   let lastDate = null
-  messages.forEach(msg => {
+  messages.forEach((msg, idx) => {
     const d = new Date(msg.timestamp || msg.createdAt)
     const dateStr = d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' })
     if (dateStr !== lastDate) {
       groupedMessages.push({ type: 'date', date: dateStr })
       lastDate = dateStr
     }
-    groupedMessages.push({ type: 'message', msg })
+    groupedMessages.push({ type: 'message', msg, originalIdx: idx })
   })
+
+  // For DM: readCount = 1 if partner's id is in readBy
+  // For group: readCount = number of members who read (excluding sender)
+  const getReadCount = (msg) => {
+    const readBy = msg.readBy || []
+    if (activeChat.type === 'dm') {
+      return readBy.some(id => id?.toString() === activeChat.id?.toString()) ? 1 : 0
+    }
+    // group — exclude sender
+    const senderId = msg.senderId?._id || msg.senderId
+    return readBy.filter(id => id?.toString() !== senderId?.toString()).length
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: theme.chatBg, overflow: 'hidden' }}>
@@ -129,6 +152,7 @@ export default function ChatWindow() {
             傳送第一則訊息開始聊天吧！
           </div>
         )}
+
         {groupedMessages.map((item, i) => {
           if (item.type === 'date') {
             return (
@@ -143,16 +167,21 @@ export default function ChatWindow() {
               </div>
             )
           }
-          const { msg } = item
-          const senderId = msg.senderId?._id || msg.senderId
-          const isMe = senderId?.toString() === currentUser._id?.toString()
+
+          const { msg, originalIdx } = item
+          const senderId    = msg.senderId?._id || msg.senderId
+          const isMe        = senderId?.toString() === currentUser._id?.toString()
+          const isLastMyMsg = isMe && originalIdx === lastMyMsgIndex
+
           return (
             <MessageBubble
-              key={msg._id || msg.id}
+              key={msg._id || msg.id || i}
               msg={msg}
               sender={typeof msg.senderId === 'object' ? msg.senderId : null}
               isMe={isMe}
               showAvatar={activeChat.type === 'group'}
+              isLastMyMsg={isLastMyMsg}
+              readCount={isLastMyMsg ? getReadCount(msg) : 0}
             />
           )
         })}

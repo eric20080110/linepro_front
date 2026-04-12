@@ -2,12 +2,16 @@ import Avatar from '../Common/Avatar'
 import { useTheme } from '../../theme/ThemeContext'
 import { format } from 'date-fns'
 
-export default function MessageBubble({ msg, sender, isMe, showAvatar }) {
+/**
+ * isLastMyMsg  — true when this is the last message sent by me (shows 已讀)
+ * readCount    — for DM: 1 if partner has read, 0 if not; for group: number of readers excluding sender
+ */
+export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyMsg, readCount }) {
   const theme = useTheme()
   const time = format(new Date(msg.timestamp || msg.createdAt), 'HH:mm')
 
-  const bubbleOtherBg = theme.isDark ? (theme.bubbleOther || '#2d2d2d') : 'white'
-  const bubbleOtherText = theme.isDark ? (theme.bubbleOtherText || '#f0f0f0') : '#1a1a1a'
+  const bubbleOtherBg     = theme.isDark ? (theme.bubbleOther   || '#2d2d2d') : 'white'
+  const bubbleOtherText   = theme.isDark ? (theme.bubbleOtherText || '#f0f0f0') : '#1a1a1a'
   const bubbleOtherBorder = theme.isDark ? (theme.bubbleOtherBorder || '#3a3a3a') : '#e5e7eb'
 
   return (
@@ -16,10 +20,10 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar }) {
       flexDirection: isMe ? 'row-reverse' : 'row',
       alignItems: 'flex-end',
       gap: 8,
-      marginBottom: 8,
+      marginBottom: isLastMyMsg ? 4 : 8,
     }}>
       {showAvatar && !isMe && <Avatar user={sender} size={32} />}
-      {showAvatar && isMe && <div style={{ width: 32 }} />}
+      {showAvatar && isMe  && <div style={{ width: 32 }} />}
 
       <div style={{
         display: 'flex',
@@ -32,7 +36,9 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar }) {
             {sender?.name}
           </div>
         )}
+
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
+          {/* Bubble */}
           <div style={{
             padding: '10px 14px',
             borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
@@ -47,10 +53,27 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar }) {
           }}>
             {msg.text}
           </div>
+
+          {/* Time */}
           <div style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, paddingBottom: 2 }}>
             {time}
           </div>
         </div>
+
+        {/* 已讀 indicator — only on last sent message */}
+        {isMe && isLastMyMsg && (
+          <div style={{
+            fontSize: 11,
+            color: readCount > 0 ? theme.primary : '#9ca3af',
+            marginTop: 3,
+            paddingRight: 2,
+            fontWeight: readCount > 0 ? 600 : 400,
+          }}>
+            {readCount > 0
+              ? (showAvatar ? `已讀 ${readCount}` : '已讀')
+              : '已傳送'}
+          </div>
+        )}
       </div>
     </div>
   )

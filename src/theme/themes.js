@@ -1,3 +1,15 @@
+// Shared light-mode bubble colours applied to all non-dark themes
+const LIGHT_BUBBLE = {
+  bubbleOther:       'white',
+  bubbleOtherText:   '#1a1a1a',
+  bubbleOtherBorder: '#e5e7eb',
+  textPrimary:       '#1a1a1a',
+  textSecondary:     '#6b7280',
+  borderColor:       '#e5e7eb',
+  inputBg:           '#f3f4f6',
+  cardBg:            'white',
+}
+
 export const THEMES = {
   purple: {
     id: 'purple',
@@ -24,6 +36,7 @@ export const THEMES = {
     onlineColor: '#BE97C6',
     loginGradient: 'linear-gradient(135deg, #8661C1 0%, #BE97C6 100%)',
     isDark: false,
+    ...LIGHT_BUBBLE,
   },
   bw: {
     id: 'bw',
@@ -50,6 +63,7 @@ export const THEMES = {
     onlineColor: '#22c55e',
     loginGradient: 'linear-gradient(135deg, #111111 0%, #444444 100%)',
     isDark: false,
+    ...LIGHT_BUBBLE,
   },
   dark: {
     id: 'dark',
@@ -76,14 +90,13 @@ export const THEMES = {
     onlineColor: '#22c55e',
     loginGradient: 'linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%)',
     isDark: true,
-    // Dark mode specific overrides
-    textPrimary: '#f0f0f0',
-    textSecondary: '#9ca3af',
-    borderColor: '#333333',
-    inputBg: '#2d2d2d',
-    cardBg: '#252525',
-    bubbleOther: '#2d2d2d',
-    bubbleOtherText: '#f0f0f0',
+    textPrimary:       '#f0f0f0',
+    textSecondary:     '#9ca3af',
+    borderColor:       '#333333',
+    inputBg:           '#2d2d2d',
+    cardBg:            '#252525',
+    bubbleOther:       '#2d2d2d',
+    bubbleOtherText:   '#f0f0f0',
     bubbleOtherBorder: '#3a3a3a',
   },
   warm: {
@@ -111,6 +124,7 @@ export const THEMES = {
     onlineColor: '#22c55e',
     loginGradient: 'linear-gradient(135deg, #FFA737 0%, #DC851F 100%)',
     isDark: false,
+    ...LIGHT_BUBBLE,
   },
   blue: {
     id: 'blue',
@@ -137,6 +151,7 @@ export const THEMES = {
     onlineColor: '#22c55e',
     loginGradient: 'linear-gradient(135deg, #2B3A67 0%, #6D9DC5 100%)',
     isDark: false,
+    ...LIGHT_BUBBLE,
   },
 }
 
