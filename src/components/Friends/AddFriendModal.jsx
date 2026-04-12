@@ -96,8 +96,8 @@ export default function AddFriendModal({ onClose }) {
               }}>
                 <Avatar user={user} size={44} showStatus />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{user.name}</div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>{user.email}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{user.nickname || user.name}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>{user.email}</div>
                 </div>
                 <button
                   onClick={() => !isSent && handleSend(user._id)}

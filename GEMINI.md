@@ -1,7 +1,7 @@
 在變更開始前請先git add .
-每次完成任何功能或修正後，必須在本文件和 GEMINI.md 末尾的「更新紀錄」區塊補上一筆記錄。
+每次完成任何功能或修正後，必須在本文件和 CLAUDE.md 末尾的「更新紀錄」區塊補上一筆記錄。
 
-# LinePro — Claude Code 專案說明
+# LinePro — GEMINI Code 專案說明
 
 ## 專案結構
 
@@ -25,9 +25,10 @@ linepro/                     ← 前端 (React + Vite)
   .env.local                 ← Vite 環境變數（不進 git）
 
   server/                    ← 後端 (Express + Socket.io)
-    config/db.js             ← Turso LibSQL 客戶端 + initDB() + rowToUser()
+    config/db.js             ← Mongoose 連線
     middleware/auth.js       ← Clerk JWT 驗證
-    routes/                  ← users, friends, groups, messages（直接 SQL 查詢）
+    models/                  ← User, Friendship, FriendRequest, Group, Message
+    routes/                  ← users, friends, groups, messages
     socket/handlers.js       ← Socket.io 事件
     .env                     ← 伺服器環境變數（不進 git）
 ```
@@ -49,8 +50,7 @@ npm start            # 生產模式
 ### `server/.env`
 ```
 PORT=3001
-TURSO_DATABASE_URL=libsql://your-db-name.turso.io
-TURSO_AUTH_TOKEN=your-turso-auth-token
+MONGODB_URI=mongodb+srv://...
 CLERK_SECRET_KEY=sk_test_...
 FRONTEND_URL=https://linepro-front-zgh1.vercel.app/
 ```
@@ -76,7 +76,7 @@ VITE_API_URL=https://linepro-back.onrender.com
 ### 狀態管理
 - 所有狀態在 `src/store/useStore.js`（Zustand）
 - Socket 儲存在 store（`socket` 欄位），join 事件在 `setActiveChat` 裡觸發
-- Clerk JWT → `clerkId` → Turso `id`（UUID），API 呼叫用 Turso `id`，回傳時以 `_id` 欄位表示
+- Clerk JWT → `clerkId` → MongoDB `_id`，API 呼叫用 MongoDB `_id`
 
 ### API 呼叫
 - 所有 API 呼叫透過 `src/api/client.js`（自動帶 Clerk JWT）

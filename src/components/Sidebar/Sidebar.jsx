@@ -55,7 +55,7 @@ export default function Sidebar() {
               <Avatar user={currentUser} size={40} showStatus />
             </button>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: 'white' }}>{currentUser?.name}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: 'white' }}>{currentUser?.nickname || currentUser?.name}</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
                 {currentUser?.statusMessage || '點擊頭像編輯個人資料'}
               </div>

@@ -14,9 +14,13 @@ export default function FriendList() {
   const [showAdd, setShowAdd] = useState(false)
   const [search, setSearch] = useState('')
 
-  const filtered = friends.filter(f => f.name.toLowerCase().includes(search.toLowerCase()))
   const textPrimary = theme.isDark ? '#f0f0f0' : '#1a1a1a'
   const textSecondary = theme.isDark ? '#9ca3af' : '#6b7280'
+
+  const filtered = friends.filter(f => {
+    const displayName = f.nickname || f.name
+    return displayName.toLowerCase().includes(search.toLowerCase())
+  })
   const inputBg = theme.isDark ? '#2d2d2d' : '#f3f4f6'
   const sectionBg = theme.isDark ? '#222' : '#f9fafb'
   const rowBorder = theme.isDark ? '#2a2a2a' : '#f9f9f9'
@@ -93,12 +97,10 @@ export default function FriendList() {
         {filtered.map(friend => (
           <div key={friend._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `1px solid ${rowBorder}` }}>
             <Avatar user={friend} size={44} showStatus />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: textPrimary }}>{friend.name}</div>
-              <div style={{ fontSize: 12, color: '#9ca3af' }}>
-                {friend.statusMessage || (friend.status === 'online' ? '線上' : friend.status === 'away' ? '離開中' : '離線')}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14, color: textPrimary }}>{friend.nickname || friend.name}</div>
+                <div style={{ fontSize: 12, color: textSecondary }}>{friend.statusMessage || ''}</div>
               </div>
-            </div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => startChat(friend)} style={{ padding: '7px 12px', borderRadius: 8, background: theme.buttonPrimary, color: 'white', fontSize: 12, fontWeight: 600 }}>傳訊息</button>
               <button onClick={() => removeFriend(friend._id)} style={{ padding: '7px 8px', borderRadius: 8, background: '#fff0f0', color: '#ef4444', fontSize: 12 }}>移除</button>

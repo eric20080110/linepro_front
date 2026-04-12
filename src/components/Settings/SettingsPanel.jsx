@@ -24,7 +24,7 @@ export default function SettingsPanel({ onClose }) {
   const dmChats = friends.map(f => ({
     type: 'dm',
     id: f._id,
-    name: f.name,
+    name: f.nickname || f.name,
     avatarColor: f.avatarColor,
     chatKey: getDMRoomId(currentUser._id, f._id),
   }))

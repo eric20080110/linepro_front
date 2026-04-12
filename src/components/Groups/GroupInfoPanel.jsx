@@ -43,7 +43,7 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
   }
 
   const getMemberUser = (m) => {
-    if (typeof m === 'object' && m.name) return m
+    if (typeof m === 'object' && (m.nickname || m.name)) return m
     return null
   }
 
@@ -126,7 +126,7 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
                       {sel && '✓'}
                     </div>
                     <Avatar user={f} size={32} />
-                    <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{f.name}</span>
+                    <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{f.nickname || f.name}</span>
                   </button>
                 )
               })}
@@ -166,7 +166,7 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
                 <Avatar user={m} size={40} showStatus />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{m.name}</span>
+                    <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{m.nickname || m.name}</span>
                     {isAdminMember && (
                       <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 10, background: '#f0fdf4', color: '#16a34a', fontWeight: 600 }}>管理員</span>
                     )}

@@ -24,7 +24,7 @@ export default function ChatList() {
     return bTime - aTime
   })
   const filtered = allChats.filter(c => {
-    const name = c.type === 'dm' ? c.user.name : c.group.name
+    const name = c.type === 'dm' ? (c.user.nickname || c.user.name) : c.group.name
     return name.toLowerCase().includes(search.toLowerCase())
   })
 

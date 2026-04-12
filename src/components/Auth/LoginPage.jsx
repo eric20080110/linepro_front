@@ -153,10 +153,10 @@ export default function LoginPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'white', fontWeight: 700, fontSize: 13, flexShrink: 0,
                 }}>
-                  {user.name[0]}
+                  {(user.nickname || user.name)[0]}
                 </div>
                 <span style={{ fontWeight: 600, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.name}
+                  {user.nickname || user.name}
                 </span>
               </button>
             ))}

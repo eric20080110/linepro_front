@@ -20,7 +20,7 @@ export default function Avatar({ user, size = 40, showStatus = false }) {
         fontSize: size * 0.38,
         flexShrink: 0,
       }}>
-        {user?.name?.[0] || '?'}
+        {(user?.nickname || user?.name)?.[0] || '?'}
       </div>
       {showStatus && (
         <div style={{

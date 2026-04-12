@@ -120,12 +120,10 @@ export default function CreateGroupModal({ onClose }) {
                   {selected && '✓'}
                 </div>
                 <Avatar user={friend} size={38} showStatus />
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{friend.name}</div>
-                  <div style={{ fontSize: 12, color: '#9ca3af' }}>
-                    {friend.status === 'online' ? '線上' : '離線'}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{friend.nickname || friend.name}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>{friend.email}</div>
                   </div>
-                </div>
               </button>
             )
           })}

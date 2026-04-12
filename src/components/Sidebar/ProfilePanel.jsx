@@ -7,13 +7,14 @@ export default function ProfilePanel({ onClose }) {
   const { currentUser, updateProfile } = useStore()
   const isMobile = useIsMobile()
   const [name, setName] = useState(currentUser?.name || '')
+  const [nickname, setNickname] = useState(currentUser?.nickname || '')
   const [statusMsg, setStatusMsg] = useState(currentUser?.statusMessage || '')
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      await updateProfile({ name, statusMessage: statusMsg })
+      await updateProfile({ name, nickname, statusMessage: statusMsg })
       onClose()
     } finally {
       setSaving(false)
@@ -36,7 +37,7 @@ export default function ProfilePanel({ onClose }) {
       }} onClick={e => e.stopPropagation()}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Avatar user={currentUser} size={80} showStatus />
-          <h2 style={{ marginTop: 12, fontSize: 20, fontWeight: 700, color: '#1a1a1a' }}>{currentUser?.name}</h2>
+          <h2 style={{ marginTop: 12, fontSize: 20, fontWeight: 700, color: '#1a1a1a' }}>{currentUser?.nickname || currentUser?.name}</h2>
           <span style={{
             display: 'inline-block', marginTop: 6,
             padding: '3px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
@@ -49,7 +50,24 @@ export default function ProfilePanel({ onClose }) {
 
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 }}>
-            顯示名稱
+            暱稱
+          </label>
+          <input
+            value={nickname}
+            onChange={e => setNickname(e.target.value)}
+            placeholder="輸入您的暱稱..."
+            style={{
+              width: '100%', padding: '10px 14px', borderRadius: 8,
+              border: '1.5px solid #e5e7eb', fontSize: 14,
+            }}
+            onFocus={e => e.target.style.borderColor = '#06C755'}
+            onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+          />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 }}>
+            顯示名稱 (真實姓名)
           </label>
           <input
             value={name}

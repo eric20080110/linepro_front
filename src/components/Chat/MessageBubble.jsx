@@ -33,7 +33,7 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
       }}>
         {showAvatar && !isMe && (
           <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 3, paddingLeft: 4 }}>
-            {sender?.name}
+            {sender?.nickname || sender?.name}
           </div>
         )}
 

@@ -13,8 +13,22 @@ export default function ChatWindow() {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
+  const [vpHeight, setVpHeight] = useState(null)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+
+  // Track visual viewport height to keep input above keyboard on mobile
+  useEffect(() => {
+    if (!isMobile || !window.visualViewport) return
+    const update = () => setVpHeight(window.visualViewport.height)
+    window.visualViewport.addEventListener('resize', update)
+    window.visualViewport.addEventListener('scroll', update)
+    update()
+    return () => {
+      window.visualViewport.removeEventListener('resize', update)
+      window.visualViewport.removeEventListener('scroll', update)
+    }
+  }, [isMobile])
 
   const messages = getMessages()
 
@@ -34,10 +48,10 @@ export default function ChatWindow() {
 
   if (!activeChat) {
     if (isMobile) {
-      // Off-screen on mobile — render empty placeholder so transition works
       return (
         <div style={{
-          position: 'absolute', inset: 0, zIndex: 10,
+          position: 'absolute', top: 0, left: 0, right: 0,
+          height: vpHeight ?? '100%', zIndex: 10,
           background: theme.chatBg,
           transform: 'translateX(100%)',
           transition: 'transform 0.3s ease',
@@ -59,7 +73,7 @@ export default function ChatWindow() {
     )
   }
 
-  const chatName     = activeChat.type === 'dm' ? activeChat.user.name : activeChat.group.name
+  const chatName     = activeChat.type === 'dm' ? (activeChat.user.nickname || activeChat.user.name) : activeChat.group.name
   const chatSubtitle = activeChat.type === 'dm'
     ? (activeChat.user.statusMessage || (activeChat.user.status === 'online' ? '線上' : '離線'))
     : `${activeChat.group.members?.length || 0} 位成員`
@@ -125,7 +139,8 @@ export default function ChatWindow() {
 
   const containerStyle = isMobile
     ? {
-        position: 'absolute', inset: 0, zIndex: 10,
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+        height: vpHeight ?? '100%',
         display: 'flex', flexDirection: 'column',
         background: theme.chatBg,
         transform: 'translateX(0)',

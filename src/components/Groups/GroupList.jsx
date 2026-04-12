@@ -10,6 +10,8 @@ export default function GroupList() {
   const [showCreate, setShowCreate] = useState(false)
   const [search, setSearch] = useState('')
 
+  const hoverBg = theme.isDark ? '#333' : '#f3f4f6'
+
   const filtered = groups.filter(g => g.name.toLowerCase().includes(search.toLowerCase()))
   const textPrimary = theme.isDark ? '#f0f0f0' : '#1a1a1a'
   const textSecondary = theme.isDark ? '#9ca3af' : '#6b7280'
