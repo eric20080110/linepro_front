@@ -1,0 +1,9 @@
+import { apiFetch } from './client'
+
+export const groupsApi = {
+  list: () => apiFetch('/api/groups'),
+  create: (data) => apiFetch('/api/groups', { method: 'POST', body: JSON.stringify(data) }),
+  get: (id) => apiFetch(`/api/groups/${id}`),
+  addMembers: (id, memberIds) => apiFetch(`/api/groups/${id}/members`, { method: 'POST', body: JSON.stringify({ memberIds }) }),
+  leave: (id) => apiFetch(`/api/groups/${id}/leave`, { method: 'DELETE' }),
+}
