@@ -21,7 +21,7 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const fileInputRef = useRef(null)
   
-  const [activeTab, setActiveTab] = useState('members') // 'members', 'media', 'search'
+  const [activeTab, setActiveTab] = useState('members') // 'members', 'media', 'links', 'search'
   const [searchQuery, setSearchQuery] = useState('')
   const [previewMedia, setPreviewMedia] = useState(null)
   const messages = getMessages()
@@ -192,6 +192,16 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
             }}
           >媒體</button>
           <button
+            onClick={() => setActiveTab('links')}
+            style={{
+              flex: 1, padding: '12px 0', background: 'none',
+              fontWeight: activeTab === 'links' ? 700 : 500,
+              color: activeTab === 'links' ? (theme.primary || '#06C755') : textSecondary,
+              borderBottom: activeTab === 'links' ? `3px solid ${theme.primary || '#06C755'}` : '3px solid transparent',
+              fontSize: 14, transition: 'all 0.2s',
+            }}
+          >連結</button>
+          <button
             onClick={() => setActiveTab('search')}
             style={{
               flex: 1, padding: '12px 0', background: 'none',
@@ -351,6 +361,40 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
                 {messages.filter(m => m.mediaUrl && !m.mediaUrl.includes('chat-audio')).length === 0 && (
                   <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '40px 0', color: textSecondary, fontSize: 14 }}>
                     尚無照片或影片
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'links' && (
+            <div style={{ padding: '12px 16px' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: textSecondary, marginBottom: 12 }}>共享連結</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {messages.filter(m => m.text?.match(/https?:\/\/[^\s]+/)).map((m, i) => {
+                  const urls = m.text.match(/https?:\/\/[^\s]+/g)
+                  return urls.map((url, j) => (
+                    <div key={`${m._id}-${i}-${j}`} style={{ padding: '12px', background: (theme.isDark ? '#2d2d2d' : '#f9fafb'), borderRadius: 10, border: `1px solid ${borderColor}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: (theme.primary || '#06C755') }}>
+                          {m.senderId?.nickname || m.senderId?.name}
+                        </span>
+                        <span 
+                          onClick={() => { jumpToMessage(m._id); onClose() }}
+                          style={{ fontSize: 10, color: textSecondary, cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                          查看訊息
+                        </span>
+                      </div>
+                      <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: (theme.isDark ? '#60a5fa' : '#2563eb'), wordBreak: 'break-all', textDecoration: 'none' }}>
+                        {url}
+                      </a>
+                    </div>
+                  ))
+                })}
+                {messages.filter(m => m.text?.match(/https?:\/\/[^\s]+/)).length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: textSecondary, fontSize: 14 }}>
+                    尚無共享連結
                   </div>
                 )}
               </div>

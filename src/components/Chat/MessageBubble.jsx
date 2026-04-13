@@ -110,7 +110,23 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
             )}
             {msg.text && (
               <span style={{ display: 'block', padding: msg.mediaUrl ? '8px 10px 6px' : 0 }}>
-                {msg.text}
+                {msg.text.split(/(https?:\/\/[^\s]+)/g).map((part, i) => {
+                  if (part.match(/^https?:\/\/[^\s]+$/)) {
+                    return (
+                      <a 
+                        key={i} 
+                        href={part} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ color: isMe ? '#fff' : (theme.primary || '#06C755'), textDecoration: 'underline', wordBreak: 'break-all' }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {part}
+                      </a>
+                    )
+                  }
+                  return part
+                })}
               </span>
             )}
           </div>
