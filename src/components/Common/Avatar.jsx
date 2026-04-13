@@ -1,4 +1,4 @@
-export default function Avatar({ user, size = 40, showStatus = false }) {
+export default function Avatar({ user, size = 40, showStatus = false, style = {} }) {
   const statusColors = {
     online: '#22c55e',
     away: '#f59e0b',
@@ -6,7 +6,7 @@ export default function Avatar({ user, size = 40, showStatus = false }) {
   }
 
   return (
-    <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+    <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0, ...style }}>
       {user?.avatarUrl ? (
         <img
           src={user.avatarUrl}

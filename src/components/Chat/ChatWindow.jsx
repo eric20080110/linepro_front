@@ -25,6 +25,7 @@ export default function ChatWindow() {
   const [showScrollBottom, setShowScrollBottom] = useState(false)
 
   const scrollContainerRef = useRef(null)
+  const isJumpingRef = useRef(false)
   const inputRef = useRef(null)
   const photoInputRef = useRef(null)
   const mediaRecorderRef = useRef(null)
@@ -33,9 +34,9 @@ export default function ChatWindow() {
 
   const messages = getMessages()
 
-  // Auto-scroll to bottom only if enabled
+  // Auto-scroll to bottom only if enabled and NOT currently jumping
   useEffect(() => {
-    if (scrollContainerRef.current && isAutoScrollEnabled && !jumpToMessageId) {
+    if (scrollContainerRef.current && isAutoScrollEnabled && !jumpToMessageId && !isJumpingRef.current) {
       scrollContainerRef.current.scrollTo({
         top: scrollContainerRef.current.scrollHeight,
         behavior: 'smooth'
@@ -46,27 +47,42 @@ export default function ChatWindow() {
   // Handle jumping to message
   useEffect(() => {
     if (jumpToMessageId && scrollContainerRef.current) {
+      isJumpingRef.current = true
       setIsAutoScrollEnabled(false) // Disable auto-scroll when jumping
+      
       const element = document.getElementById(`msg-${jumpToMessageId}`)
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
         element.classList.add('message-highlight')
+        
+        // Keep auto-scroll disabled for a while to allow user to read
+        setTimeout(() => {
+          isJumpingRef.current = false
+        }, 1500)
+
         setTimeout(() => {
           element.classList.remove('message-highlight')
-        }, 2000)
+        }, 3000)
+      } else {
+        isJumpingRef.current = false
       }
     }
   }, [jumpToMessageId])
 
   // Scroll listener to show/hide "back to bottom" button and detect manual scroll
   const handleScroll = () => {
-    if (!scrollContainerRef.current) return
+    if (!scrollContainerRef.current || isJumpingRef.current) return
+    
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
     
     setShowScrollBottom(!isAtBottom)
+    
+    // Only re-enable auto-scroll if user manually scrolled to bottom
     if (isAtBottom) {
       setIsAutoScrollEnabled(true)
+    } else {
+      setIsAutoScrollEnabled(false)
     }
   }
 

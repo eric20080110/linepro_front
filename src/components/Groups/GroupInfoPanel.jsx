@@ -42,7 +42,7 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
   // Get fresh group from store
   const group = groups.find(g => g._id === initialGroup._id) || initialGroup
   const members = Array.isArray(group.members) ? group.members : []
-  const isAdmin = (group.admins || []).some(a => (a._id || a) === currentUser._id)
+  const isAdmin = (group.admins || []).some(aId => String(aId) === String(currentUser._id)) || String(group.createdBy) === String(currentUser._id)
 
   const memberIds = new Set(members.map(m => m._id || m))
   const nonMembers = friends.filter(f => !memberIds.has(f._id))
