@@ -26,6 +26,8 @@ const useStore = create((set, get) => ({
         get().fetchFriendRequests(),
         get().fetchGroups(),
       ])
+      // Pre-fetch messages for all chats
+      get().fetchAllMessages()
     } catch (err) {
       console.error('syncUser failed:', err)
       set({ syncing: false })
@@ -230,7 +232,13 @@ const useStore = create((set, get) => ({
       }
     }
 
-    set({ activeChat: chat, messagesLoading: true })
+    const key = chat.type === 'dm'
+      ? getDMRoomId(currentUser._id, chat.id)
+      : `group:${chat.id}`
+
+    const alreadyHasMessages = !!get().messages[key]
+    set({ activeChat: chat, messagesLoading: !alreadyHasMessages })
+
     try {
       let msgs = []
       if (chat.type === 'dm') {
@@ -238,9 +246,6 @@ const useStore = create((set, get) => ({
       } else {
         msgs = await messagesApi.getGroup(chat.id)
       }
-      const key = chat.type === 'dm'
-        ? getDMRoomId(currentUser._id, chat.id)
-        : `group:${chat.id}`
       set(state => ({
         messages: { ...state.messages, [key]: msgs },
         messagesLoading: false,
@@ -364,6 +369,29 @@ const useStore = create((set, get) => ({
     }
     const msgs = messages[key] || []
     return msgs[msgs.length - 1] || null
+  },
+
+  fetchAllMessages: async () => {
+    const { friends, groups, currentUser } = get()
+    if (!currentUser) return
+
+    const dmTasks = friends.map(async (f) => {
+      try {
+        const msgs = await messagesApi.getDM(f._id)
+        const key = getDMRoomId(currentUser._id, f._id)
+        set(state => ({ messages: { ...state.messages, [key]: msgs } }))
+      } catch (e) { /* ignore */ }
+    })
+
+    const groupTasks = groups.map(async (g) => {
+      try {
+        const msgs = await messagesApi.getGroup(g._id)
+        const key = `group:${g._id}`
+        set(state => ({ messages: { ...state.messages, [key]: msgs } }))
+      } catch (e) { /* ignore */ }
+    })
+
+    await Promise.all([...dmTasks, ...groupTasks])
   },
 
   // ─── Message Jumping ─────────────────────────────────────────────────────
