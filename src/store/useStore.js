@@ -408,9 +408,13 @@ const useStore = create((set, get) => ({
     set(state => ({
       messages: {
         ...state.messages,
-        [key]: (state.messages[key] || []).map(m =>
-          (m._id || m.id) === msgId ? { ...m, ...updatedMsg } : m
-        ),
+        [key]: (state.messages[key] || []).map(m => {
+          if ((m._id || m.id) !== msgId) return m
+          const merged = { ...m, ...updatedMsg }
+          // Once recalled, never un-recall (guard against stale socket events)
+          if (m.isRecalled) { merged.isRecalled = true; merged.text = ''; merged.mediaUrl = null }
+          return merged
+        }),
       },
     }))
   },
