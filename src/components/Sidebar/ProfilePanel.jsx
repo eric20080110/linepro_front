@@ -68,7 +68,7 @@ export default function ProfilePanel({ onClose }) {
                 background: 'rgba(0,0,0,0.45)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: 'white', fontSize: 20,
-              }}>⏳</div>
+              }}><span className="animate-spin">⏳</span></div>
             )}
             {!uploadingAvatar && (
               <div style={{

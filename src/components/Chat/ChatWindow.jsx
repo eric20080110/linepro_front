@@ -359,7 +359,7 @@ export default function ChatWindow() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {uploadingPhoto ? '⏳' : '📷'}
+          {uploadingPhoto ? <span className="animate-spin">⏳</span> : '📷'}
         </button>
 
         {isRecording ? (
@@ -412,7 +412,7 @@ export default function ChatWindow() {
             flexShrink: 0, transition: 'background 0.2s',
           }}
         >
-          {sending && !isRecording ? '⏳' : isRecording ? '⬆️' : (!input.trim() ? '🎤' : '➤')}
+          {sending && !isRecording ? <span className="animate-spin">⏳</span> : isRecording ? '⬆️' : (!input.trim() ? '🎤' : '➤')}
         </button>
       </div>
 
