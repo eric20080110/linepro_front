@@ -145,8 +145,15 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
 
   // Portal menu — renders at document.body, above ALL stacking contexts
   const menuPortal = showMenu ? createPortal(
-    <div
-      ref={menuRef}
+    <>
+      {/* Tap-outside backdrop (mobile + desktop) */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 99998 }}
+        onMouseDown={() => setShowMenu(false)}
+        onTouchStart={() => setShowMenu(false)}
+      />
+      <div
+        ref={menuRef}
       onMouseDown={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
       onTouchStart={e => e.stopPropagation()}
@@ -194,7 +201,8 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
       {isMe && (
         <MenuOption label="收回訊息" icon="🗑️" color="#ef4444" onClick={() => { recallMessage(msg._id); setShowMenu(false) }} theme={theme} isMobile={isMobile} />
       )}
-    </div>,
+    </div>
+    </>,
     document.body
   ) : null
 
