@@ -159,6 +159,13 @@ const useStore = create((set, get) => ({
     set(state => ({ groups: state.groups.filter(g => g._id !== groupId) }))
   },
 
+  updateGroupProfile: async (groupId, data) => {
+    const updated = await groupsApi.update(groupId, data)
+    set(state => ({
+      groups: state.groups.map(g => g._id === groupId ? updated : g),
+    }))
+  },
+
   addGroupMembers: async (groupId, memberIds) => {
     const updated = await groupsApi.addMembers(groupId, memberIds)
     set(state => ({
