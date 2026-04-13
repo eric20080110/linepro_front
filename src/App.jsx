@@ -3,6 +3,7 @@ import { useUser, useAuth, SignIn } from '@clerk/clerk-react'
 import useStore from './store/useStore'
 import { setTokenGetter } from './api/client'
 import { useSocket } from './hooks/useSocket'
+import useIsMobile from './hooks/useIsMobile'
 import { ThemeContext } from './theme/ThemeContext'
 import Sidebar from './components/Sidebar/Sidebar'
 import ChatWindow from './components/Chat/ChatWindow'
@@ -12,6 +13,7 @@ export default function App() {
   const { isSignedIn, isLoaded } = useUser()
   const { getToken } = useAuth()
   const { currentUser, syncing, syncUser, theme, activeCall, incomingCall, setActiveCall, setIncomingCall } = useStore()
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     setTokenGetter(() => getToken())
@@ -75,8 +77,11 @@ export default function App() {
   return (
     <ThemeContext.Provider value={theme}>
       <div style={{
-        display: 'flex', width: '100%', height: '100%',
+        display: 'flex', width: '100%', height: '100dvh',
         background: theme.background,
+        position: isMobile ? 'fixed' : 'relative',
+        top: 0, left: 0, right: 0, bottom: 0,
+        overflow: 'hidden',
       }}>
         <Sidebar />
         <ChatWindow />
