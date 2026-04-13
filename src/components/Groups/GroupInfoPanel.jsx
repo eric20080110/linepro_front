@@ -314,7 +314,11 @@ export default function GroupInfoPanel({ group: initialGroup, onClose }) {
               />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {messages.filter(m => searchQuery && m.text?.toLowerCase().includes(searchQuery.toLowerCase())).map((m, i) => (
-                  <div key={m._id || i} style={{ padding: '10px', background: '#f9fafb', borderRadius: 8 }}>
+                  <div 
+                    key={m._id || i} 
+                    onClick={() => { jumpToMessage(m._id); onClose() }}
+                    style={{ padding: '10px', background: '#f9fafb', borderRadius: 8, cursor: 'pointer' }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#06C755' }}>
                         {m.senderId?.nickname || m.senderId?.name}

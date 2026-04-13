@@ -6,7 +6,7 @@ import Icon from '../Common/Icon'
 import ImagePreviewModal from './ImagePreviewModal'
 
 export default function DMInfoPanel({ user, onClose }) {
-  const { getMessages } = useStore()
+  const { getMessages, jumpToMessage } = useStore()
   const isMobile = useIsMobile()
   const [activeTab, setActiveTab] = useState('media') // 'media', 'search'
   const [searchQuery, setSearchQuery] = useState('')
@@ -115,7 +115,11 @@ export default function DMInfoPanel({ user, onClose }) {
               />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {messages.filter(m => searchQuery && m.text?.toLowerCase().includes(searchQuery.toLowerCase())).map((m, i) => (
-                  <div key={m._id || i} style={{ padding: '12px', background: '#f9fafb', borderRadius: 10, border: '1px solid #f3f4f6' }}>
+                  <div 
+                    key={m._id || i} 
+                    onClick={() => { jumpToMessage(m._id); onClose() }}
+                    style={{ padding: '12px', background: '#f9fafb', borderRadius: 10, border: '1px solid #f3f4f6', cursor: 'pointer' }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#06C755' }}>
                         {m.senderId?._id === user._id ? (user.nickname || user.name) : '我'}

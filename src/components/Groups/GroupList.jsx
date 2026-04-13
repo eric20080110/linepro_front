@@ -65,12 +65,11 @@ export default function GroupList() {
             <div style={{ fontSize: 12, marginTop: 4, color: textSecondary }}>建立群組一起聊天吧！</div>
           </div>
         )}
-        {filtered.map(group => (
-          <div key={group._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `1px solid ${rowBorder}` }}>
-            <div style={{ position: 'relative' }}>
-              <Avatar user={{ name: group.name, avatarColor: group.avatarColor }} size={46} />
-                  <div style={{
-                    position: 'absolute', bottom: -2, right: -2,
+                {filtered.map(group => (
+                  <div key={group._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `1px solid ${rowBorder}` }}>
+                    <div style={{ position: 'relative' }}>
+                      <Avatar user={group} size={46} />
+                      <div style={{                    position: 'absolute', bottom: -2, right: -2,
                     background: theme.primary, borderRadius: '50%',
                     width: 18, height: 18, border: '2px solid white',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',

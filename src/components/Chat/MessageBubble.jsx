@@ -17,13 +17,19 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
   const bubbleOtherBorder = theme.isDark ? (theme.bubbleOtherBorder || '#3a3a3a') : '#e5e7eb'
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: isMe ? 'row-reverse' : 'row',
-      alignItems: 'flex-end',
-      gap: 8,
-      marginBottom: isLastMyMsg ? 4 : 8,
-    }}>
+    <div 
+      id={`msg-${msg._id}`}
+      style={{
+        display: 'flex',
+        flexDirection: isMe ? 'row-reverse' : 'row',
+        alignItems: 'flex-end',
+        gap: 8,
+        marginBottom: isLastMyMsg ? 4 : 8,
+        padding: '4px 8px',
+        borderRadius: 8,
+        transition: 'background-color 0.5s',
+      }}
+    >
       {showAvatar && !isMe && <Avatar user={sender} size={32} />}
       {showAvatar && isMe  && <div style={{ width: 32 }} />}
 

@@ -348,6 +348,14 @@ const useStore = create((set, get) => ({
     return msgs[msgs.length - 1] || null
   },
 
+  // ─── Message Jumping ─────────────────────────────────────────────────────
+  jumpToMessageId: null,
+  jumpToMessage: (id) => {
+    set({ jumpToMessageId: id })
+    // Clear after a short delay so the same message can be jumped to again
+    setTimeout(() => set({ jumpToMessageId: null }), 1000)
+  },
+
   // ─── UI ──────────────────────────────────────────────────────────────────
   activeTab: 'chats',
   setActiveTab: (tab) => set({ activeTab: tab }),

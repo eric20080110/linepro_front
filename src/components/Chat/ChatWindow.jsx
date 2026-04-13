@@ -11,7 +11,7 @@ import { uploadToCloudinary } from '../../utils/cloudinaryUpload'
 import Icon from '../Common/Icon'
 
 export default function ChatWindow() {
-  const { currentUser, activeChat, setActiveChat, getMessages, sendMessage, messagesLoading, setActiveCall } = useStore()
+  const { currentUser, activeChat, setActiveChat, getMessages, sendMessage, messagesLoading, setActiveCall, jumpToMessageId } = useStore()
   const theme = useTheme()
   const isMobile = useIsMobile()
   const [input, setInput] = useState('')
@@ -32,13 +32,27 @@ export default function ChatWindow() {
   const messages = getMessages()
 
   useEffect(() => {
-    if (scrollContainerRef.current) {
+    if (scrollContainerRef.current && !jumpToMessageId) {
       scrollContainerRef.current.scrollTo({
         top: scrollContainerRef.current.scrollHeight,
         behavior: 'smooth'
       })
     }
-  }, [messages])
+  }, [messages, jumpToMessageId])
+
+  // Handle jumping to message
+  useEffect(() => {
+    if (jumpToMessageId && scrollContainerRef.current) {
+      const element = document.getElementById(`msg-${jumpToMessageId}`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.classList.add('message-highlight')
+        setTimeout(() => {
+          element.classList.remove('message-highlight')
+        }, 2000)
+      }
+    }
+  }, [jumpToMessageId])
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -82,7 +96,7 @@ export default function ChatWindow() {
     : `${activeChat.group.members?.length || 0} 位成員`
   const chatAvatar   = activeChat.type === 'dm'
     ? activeChat.user
-    : { name: activeChat.group.name, avatarColor: activeChat.group.avatarColor }
+    : activeChat.group
 
   const handleSend = async () => {
     if (!input.trim() || sending) return

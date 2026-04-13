@@ -79,3 +79,12 @@ h1, h2, h3, h4 {
 .animate-pulse {
   animation: pulse 1.5s ease-in-out infinite;
 }
+
+@keyframes highlight-fade {
+  0% { background-color: rgba(6, 199, 85, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.message-highlight {
+  animation: highlight-fade 2s ease-out;
+}

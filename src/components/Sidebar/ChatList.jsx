@@ -76,8 +76,8 @@ export default function ChatList() {
           </div>
         )}
         {filtered.map(chat => {
-          const name = chat.type === 'dm' ? chat.user.name : chat.group.name
-          const avatarUser = chat.type === 'dm' ? chat.user : { name: chat.group.name, avatarColor: chat.group.avatarColor }
+          const name = chat.type === 'dm' ? (chat.user.nickname || chat.user.name) : chat.group.name
+          const avatarUser = chat.type === 'dm' ? chat.user : chat.group
           const active = isActive(chat)
           return (
             <button
