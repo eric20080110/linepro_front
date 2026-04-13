@@ -53,6 +53,7 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
   const handleTouchMove = (e) => {
     if (!isSwiping) return
     const diff = e.touches[0].clientX - startX.current
+    if (Math.abs(diff) > 10) clearTimeout(longPressTimer.current)
     const offset = isMe ? Math.min(0, Math.max(diff, -60)) : Math.max(0, Math.min(diff, 60))
     setSwipeY(offset)
   }
@@ -83,8 +84,8 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
     const rect = e.currentTarget.getBoundingClientRect()
     const menuWidth = 200
     // Prefer showing below the button; flip up if near bottom
-    const spaceBelow = window.innerHeight - rect.bottom
-    const top = spaceBelow > 260 ? rect.bottom + 4 : rect.top - 264
+    const menuHeight = 230
+    const top = Math.min(rect.top, window.innerHeight - menuHeight - 8)
 
     let left, right
     if (isMe) {
@@ -141,6 +142,9 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
         position: 'relative',
         transform: `translateX(${swipeOffset}px)`,
         transition: isSwiping ? 'none' : 'transform 0.2s',
+        userSelect: isMobile ? 'none' : 'auto',
+        WebkitUserSelect: isMobile ? 'none' : 'auto',
+        WebkitTouchCallout: 'none',
       }}
     >
       {/* Swipe indicator */}
@@ -306,6 +310,15 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
         </div>
       </div>
 
+      {/* ── Backdrop: blocks pointer events to elements behind the menu ────── */}
+      {showMenu && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+          onMouseDown={(e) => { e.stopPropagation(); setShowMenu(false) }}
+          onTouchStart={(e) => { e.stopPropagation(); setShowMenu(false) }}
+        />
+      )}
+
       {/* ── Floating action menu (position: fixed, never clipped) ────────── */}
       {showMenu && (
         <div
@@ -348,6 +361,13 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
             onClick={() => { setReplyingTo(msg); setShowMenu(false) }}
             theme={theme}
           />
+          {msg.text && (
+            <MenuOption
+              label="複製訊息" icon="📋"
+              onClick={() => { navigator.clipboard?.writeText(msg.text); setShowMenu(false) }}
+              theme={theme}
+            />
+          )}
           <MenuOption
             label={msg.isPinned ? '取消釘選' : '釘選訊息'} icon="📌"
             onClick={() => { pinMessage(msg._id, !msg.isPinned); setShowMenu(false) }}
