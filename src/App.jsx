@@ -34,7 +34,7 @@ export default function App() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: theme.loginGradient,
       }}>
-        <div style={{ fontSize: 40 }}>⏳</div>
+        <div className="animate-spin" style={{ fontSize: 40 }}>⏳</div>
       </div>
     )
   }
@@ -58,7 +58,7 @@ export default function App() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: theme.loginGradient, flexDirection: 'column', gap: 12,
       }}>
-        <div style={{ fontSize: 40 }}>💬</div>
+        <div className="animate-pulse" style={{ fontSize: 40 }}>💬</div>
         <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 600 }}>正在同步帳號資料...</p>
       </div>
     )

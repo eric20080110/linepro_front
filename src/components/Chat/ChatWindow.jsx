@@ -289,7 +289,8 @@ export default function ChatWindow() {
         style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px', overscrollBehaviorY: 'contain' }}
       >
         {messagesLoading && (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: textSecondary, fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: textSecondary, fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div className="animate-spin" style={{ fontSize: 24 }}>⏳</div>
             載入訊息中...
           </div>
         )}
