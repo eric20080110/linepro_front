@@ -8,6 +8,11 @@ export function useSocket(mongoUserId) {
   useEffect(() => {
     if (!mongoUserId) return
 
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+
     const socket = io(API_URL, {
       auth: { userId: mongoUserId },
       transports: ['websocket', 'polling'],
@@ -18,6 +23,18 @@ export function useSocket(mongoUserId) {
 
     socket.on('new_message', (message) => {
       useStore.getState().appendMessage(message)
+
+      // System notification logic
+      const currentUser = useStore.getState().currentUser
+      const isFromMe = (message.senderId?._id || message.senderId) === currentUser?._id
+      
+      if (!isFromMe && 'Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        const senderName = message.senderId?.nickname || message.senderId?.name || '新訊息'
+        new Notification(`LinePro: ${senderName}`, {
+          body: message.text || (message.mediaUrl ? '傳送了媒體檔案' : ''),
+          icon: '/favicon.svg'
+        })
+      }
     })
 
     socket.on('messages_read', (payload) => {

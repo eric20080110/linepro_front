@@ -319,7 +319,19 @@ export default function ChatWindow() {
         {activeChat.type === 'dm' && (
           <div style={{ display: 'flex', gap: 8 }}>
             <button
-              onClick={() => setActiveCall({ partnerId: activeChat.id, partnerUser: activeChat.user, mode: 'calling' })}
+              onClick={() => setActiveCall({ partnerId: activeChat.id, partnerUser: activeChat.user, mode: 'calling', callType: 'voice' })}
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: theme.isDark ? '#2d2d2d' : '#f3f4f6',
+                color: textPrimary, fontSize: 18,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              title="語音通話"
+            >
+              <Icon name="call" fallback="📞" size={22} style={{ filter: theme.isDark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
+            </button>
+            <button
+              onClick={() => setActiveCall({ partnerId: activeChat.id, partnerUser: activeChat.user, mode: 'calling', callType: 'video' })}
               style={{
                 width: 40, height: 40, borderRadius: '50%',
                 background: theme.isDark ? '#2d2d2d' : '#f3f4f6',

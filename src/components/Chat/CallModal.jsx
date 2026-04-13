@@ -74,18 +74,21 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
     socket?.on('call_ended', handleEnded)
 
     async function setupCall() {
+      const callType = mode === 'calling' ? useStore.getState().activeCall?.callType : (offer?.callType || 'video')
+      const constraints = { audio: true, video: callType === 'video' }
+
       if (mode === 'calling') {
         try {
-          const localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+          const localStr = await navigator.mediaDevices.getUserMedia(constraints)
           setLocalStream(localStr)
-          if (localVideoRef.current) localVideoRef.current.srcObject = localStr
+          if (localVideoRef.current && callType === 'video') localVideoRef.current.srcObject = localStr
           localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
 
           const offer = await pc.createOffer()
           await pc.setLocalDescription(offer)
           socket?.emit('call_offer', {
             targetId: partnerId,
-            offer,
+            offer: { ...offer, callType },
             callerId: useStore.getState().currentUser?._id,
             callerName: useStore.getState().currentUser?.nickname || useStore.getState().currentUser?.name,
           })
@@ -136,10 +139,11 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
   // Incoming call — accept
   const acceptCall = async () => {
     setStatus('連線中...')
+    const callType = offer?.callType || 'video'
     try {
-      const localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      const localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' })
       setLocalStream(localStr)
-      if (localVideoRef.current) localVideoRef.current.srcObject = localStr
+      if (localVideoRef.current && callType === 'video') localVideoRef.current.srcObject = localStr
 
       const pc = pcRef.current
       localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
@@ -148,9 +152,6 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
       await pc.setLocalDescription(answer)
       socket?.emit('call_answer', { callerId: partnerId, answer })
       
-      // Callee also needs to process their queue after answering!
-      const { iceQueue = [] } = {} // Not accessible this way, using the one from closure
-      // The handleIce function already handles it via the iceQueue in the parent scope
       setStatus('通話中')
     } catch (err) {
       console.error('Failed to accept call:', err)

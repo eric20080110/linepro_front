@@ -56,8 +56,8 @@ const useStore = create((set, get) => ({
   setSocket: (socket) => set({ socket }),
 
   // ─── Call state ──────────────────────────────────────────────────────────
-  incomingCall: null,   // { callerId, callerName, offer }
-  activeCall: null,     // { partnerId, partnerUser, mode: 'calling' }
+  incomingCall: null,   // { callerId, callerName, offer, callType }
+  activeCall: null,     // { partnerId, partnerUser, mode: 'calling', callType }
   setIncomingCall: (call) => set({ incomingCall: call }),
   setActiveCall:   (call) => set({ activeCall: call }),
 
