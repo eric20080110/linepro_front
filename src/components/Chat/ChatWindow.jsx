@@ -21,6 +21,8 @@ export default function ChatWindow() {
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
   const [previewImage, setPreviewImage] = useState(null)
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true)
+  const [showScrollBottom, setShowScrollBottom] = useState(false)
 
   const scrollContainerRef = useRef(null)
   const inputRef = useRef(null)
@@ -31,18 +33,20 @@ export default function ChatWindow() {
 
   const messages = getMessages()
 
+  // Auto-scroll to bottom only if enabled
   useEffect(() => {
-    if (scrollContainerRef.current && !jumpToMessageId) {
+    if (scrollContainerRef.current && isAutoScrollEnabled && !jumpToMessageId) {
       scrollContainerRef.current.scrollTo({
         top: scrollContainerRef.current.scrollHeight,
         behavior: 'smooth'
       })
     }
-  }, [messages, jumpToMessageId])
+  }, [messages, jumpToMessageId, isAutoScrollEnabled])
 
   // Handle jumping to message
   useEffect(() => {
     if (jumpToMessageId && scrollContainerRef.current) {
+      setIsAutoScrollEnabled(false) // Disable auto-scroll when jumping
       const element = document.getElementById(`msg-${jumpToMessageId}`)
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -54,9 +58,32 @@ export default function ChatWindow() {
     }
   }, [jumpToMessageId])
 
+  // Scroll listener to show/hide "back to bottom" button and detect manual scroll
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
+    
+    setShowScrollBottom(!isAtBottom)
+    if (isAtBottom) {
+      setIsAutoScrollEnabled(true)
+    }
+  }
+
+  const scrollToBottom = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      })
+      setIsAutoScrollEnabled(true)
+    }
+  }
+
   useEffect(() => {
     inputRef.current?.focus()
     setShowInfo(false)
+    setIsAutoScrollEnabled(true) // Reset on chat change
   }, [activeChat?.id])
 
   const textPrimary  = theme.textPrimary  || '#1a1a1a'
@@ -318,7 +345,8 @@ export default function ChatWindow() {
       {/* Messages */}
       <div 
         ref={scrollContainerRef}
-        style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px', overscrollBehaviorY: 'contain' }}
+        onScroll={handleScroll}
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px', overscrollBehaviorY: 'contain', position: 'relative' }}
       >
         {messagesLoading && (
           <div style={{ textAlign: 'center', padding: '40px 0', color: textSecondary, fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
@@ -366,6 +394,31 @@ export default function ChatWindow() {
             />
           )
         })}
+
+        {/* Scroll to bottom button */}
+        {showScrollBottom && (
+          <button
+            onClick={scrollToBottom}
+            style={{
+              position: 'fixed',
+              bottom: isMobile ? 90 : 100,
+              right: isMobile ? 20 : 40,
+              width: 40, height: 40,
+              borderRadius: '50%',
+              background: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 5,
+              border: `1px solid ${borderColor}`,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+          >
+            <Icon name="arrow_down" fallback="⬇️" size={20} style={{ filter: 'grayscale(1)' }} />
+          </button>
+        )}
       </div>
 
       {/* Input */}
