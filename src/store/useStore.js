@@ -218,6 +218,9 @@ const useStore = create((set, get) => ({
   messages: {}, // { [chatKey]: Message[] }
   messagesLoading: false,
   activeChat: null,
+  replyingTo: null, // Message object
+
+  setReplyingTo: (message) => set({ replyingTo: message }),
 
   setActiveChat: async (chat) => {
     if (!chat) { set({ activeChat: null }); return }
@@ -329,16 +332,55 @@ const useStore = create((set, get) => ({
   },
 
   sendMessage: async (text, mediaUrl = null) => {
-    const { currentUser, activeChat } = get()
+    const { currentUser, activeChat, replyingTo } = get()
     if (!currentUser || !activeChat) return
     if (!text?.trim() && !mediaUrl) return
 
+    const replyToId = replyingTo?._id
+    set({ replyingTo: null }) // Clear reply state after sending
+
     if (activeChat.type === 'dm') {
-      await messagesApi.sendDM(activeChat.id, text || '', mediaUrl)
+      await messagesApi.sendDM(activeChat.id, text || '', mediaUrl, replyToId)
     } else {
-      await messagesApi.sendGroup(activeChat.id, text || '', mediaUrl)
+      await messagesApi.sendGroup(activeChat.id, text || '', mediaUrl, replyToId)
     }
-    // Message will arrive via socket 'new_message' event
+  },
+
+  recallMessage: async (messageId) => {
+    await messagesApi.recall(messageId)
+  },
+
+  pinMessage: async (messageId, pinned) => {
+    await messagesApi.pin(messageId, pinned)
+  },
+
+  reactToMessage: async (messageId, emoji) => {
+    await messagesApi.react(messageId, emoji)
+  },
+
+  updateMessageInStore: (updatedMsg) => {
+    const { messages } = get()
+    let key
+    if (updatedMsg.type === 'dm') {
+      const senderId = updatedMsg.senderId?._id || updatedMsg.senderId
+      const receiverId = updatedMsg.receiverId?._id || updatedMsg.receiverId
+      // We need to find which key this message belongs to. 
+      // Since it's a DM, we check all DM keys in the state.
+      key = Object.keys(messages).find(k => k.startsWith('dm:') && (k.includes(senderId) || k.includes(receiverId)))
+    } else {
+      key = `group:${updatedMsg.groupId?._id || updatedMsg.groupId}`
+    }
+
+    if (!key) return
+
+    set(state => ({
+      messages: {
+        ...state.messages,
+        [key]: (state.messages[key] || []).map(m => 
+          m._id === (updatedMsg._id || updatedMsg.id) ? { ...m, ...updatedMsg } : m
+        )
+      }
+    }))
   },
 
   appendMessage: (message) => {

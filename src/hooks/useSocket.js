@@ -41,6 +41,10 @@ export function useSocket(mongoUserId) {
       useStore.getState().handleMessagesRead(payload)
     })
 
+    socket.on('message_updated', (updatedMsg) => {
+      useStore.getState().updateMessageInStore(updatedMsg)
+    })
+
     socket.on('friend_request_received', ({ from }) => {
       useStore.getState().addIncomingRequest(from)
     })
