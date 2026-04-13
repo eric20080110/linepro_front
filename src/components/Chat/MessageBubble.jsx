@@ -66,20 +66,26 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
                   }}
                 />
               ) : isVideo ? (
-                <video
-                  controls
-                  src={msg.mediaUrl}
-                  style={{
-                    display: 'block',
-                    maxWidth: 260,
-                    maxHeight: 280,
-                    borderRadius: msg.text ? '10px 10px 0 0' : 10,
-                    objectFit: 'cover',
-                  }}
-                />
+                <div
+                  onClick={() => onImageClick && onImageClick({ url: msg.mediaUrl, type: 'video' })}
+                  style={{ cursor: 'zoom-in' }}
+                >
+                  <video
+                    src={msg.mediaUrl}
+                    style={{
+                      display: 'block',
+                      maxWidth: 260,
+                      maxHeight: 280,
+                      borderRadius: msg.text ? '10px 10px 0 0' : 10,
+                      objectFit: 'cover',
+                      pointerEvents: 'none', // let the div handle the click
+                    }}
+                  />
+                  {/* Play icon overlay indicator could go here if wanted */}
+                </div>
               ) : (
                 <div
-                  onClick={() => onImageClick && onImageClick(msg.mediaUrl)}
+                  onClick={() => onImageClick && onImageClick({ url: msg.mediaUrl, type: 'image' })}
                   style={{ cursor: 'zoom-in' }}
                 >
                   <img

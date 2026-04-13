@@ -430,7 +430,7 @@ export default function ChatWindow() {
       )}
 
       {previewImage && (
-        <ImagePreviewModal url={previewImage} onClose={() => setPreviewImage(null)} />
+        <ImagePreviewModal url={previewImage.url} type={previewImage.type} onClose={() => setPreviewImage(null)} />
       )}
     </div>
   )

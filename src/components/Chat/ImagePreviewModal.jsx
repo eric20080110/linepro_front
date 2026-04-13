@@ -1,4 +1,4 @@
-export default function ImagePreviewModal({ url, onClose }) {
+export default function ImagePreviewModal({ url, type = 'image', onClose }) {
   if (!url) return null
 
   return (
@@ -37,18 +37,34 @@ export default function ImagePreviewModal({ url, onClose }) {
       >
         ×
       </button>
-      <img
-        src={url}
-        alt="預覽"
-        style={{
-          maxWidth: '90vw',
-          maxHeight: '90vh',
-          objectFit: 'contain',
-          borderRadius: 8,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-        }}
-        onClick={e => e.stopPropagation()}
-      />
+      {type === 'video' ? (
+        <video
+          src={url}
+          controls
+          autoPlay
+          style={{
+            maxWidth: '90vw',
+            maxHeight: '90vh',
+            objectFit: 'contain',
+            borderRadius: 8,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          }}
+          onClick={e => e.stopPropagation()}
+        />
+      ) : (
+        <img
+          src={url}
+          alt="預覽"
+          style={{
+            maxWidth: '90vw',
+            maxHeight: '90vh',
+            objectFit: 'contain',
+            borderRadius: 8,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          }}
+          onClick={e => e.stopPropagation()}
+        />
+      )}
     </div>
   )
 }
