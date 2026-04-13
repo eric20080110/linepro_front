@@ -4,7 +4,6 @@
   padding: 0;
 }
 
-/* Prevent iOS Safari from scrolling page when keyboard opens */
 html {
   height: 100%;
   overflow: hidden;
@@ -13,12 +12,10 @@ html {
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', sans-serif;
   background: #1a1a2e;
-  height: 100%;
+  /* 100dvh shrinks automatically when keyboard opens on iOS Safari & modern Android */
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
-  /* position: fixed prevents iOS bounce scroll that creates blank areas */
-  position: fixed;
-  width: 100%;
 }
 
 #root {

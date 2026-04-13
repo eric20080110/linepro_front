@@ -13,28 +13,8 @@ export default function ChatWindow() {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
-  const [vpTop, setVpTop] = useState(0)
-  const [vpHeight, setVpHeight] = useState(() => window.innerHeight)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
-
-  // Track visual viewport to keep container above keyboard (iOS Safari)
-  useEffect(() => {
-    if (!isMobile) return
-    const vv = window.visualViewport
-    if (!vv) return
-    const update = () => {
-      setVpTop(vv.offsetTop)
-      setVpHeight(vv.height)
-    }
-    vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
-    update()
-    return () => {
-      vv.removeEventListener('resize', update)
-      vv.removeEventListener('scroll', update)
-    }
-  }, [isMobile])
 
   const messages = getMessages()
 
@@ -56,8 +36,7 @@ export default function ChatWindow() {
     if (isMobile) {
       return (
         <div style={{
-          position: 'fixed', top: vpTop, left: 0, right: 0,
-          height: vpHeight, zIndex: 10,
+          position: 'fixed', inset: 0, zIndex: 10,
           background: theme.chatBg,
           transform: 'translateX(100%)',
           transition: 'transform 0.3s ease',
@@ -145,8 +124,7 @@ export default function ChatWindow() {
 
   const containerStyle = isMobile
     ? {
-        position: 'fixed', top: vpTop, left: 0, right: 0, zIndex: 10,
-        height: vpHeight,
+        position: 'fixed', inset: 0, zIndex: 10,
         display: 'flex', flexDirection: 'column',
         background: theme.chatBg,
         transform: 'translateX(0)',
