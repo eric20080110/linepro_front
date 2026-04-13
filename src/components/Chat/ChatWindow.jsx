@@ -272,7 +272,7 @@ export default function ChatWindow() {
         <input
           ref={photoInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/*"
           style={{ display: 'none' }}
           onChange={handlePhotoSend}
         />

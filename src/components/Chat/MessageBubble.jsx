@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyMsg, readCount }) {
   const theme = useTheme()
   const time = format(new Date(msg.timestamp || msg.createdAt), 'HH:mm')
+  const isVideo = msg.mediaUrl?.match(/\.(mp4|webm|ogg|mov)$/i)
 
   const bubbleOtherBg     = theme.isDark ? (theme.bubbleOther   || '#2d2d2d') : 'white'
   const bubbleOtherText   = theme.isDark ? (theme.bubbleOtherText || '#f0f0f0') : '#1a1a1a'
@@ -53,10 +54,10 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
             overflow: 'hidden',
           }}>
             {msg.mediaUrl && (
-              <a href={msg.mediaUrl} target="_blank" rel="noreferrer">
-                <img
+              isVideo ? (
+                <video
+                  controls
                   src={msg.mediaUrl}
-                  alt="圖片"
                   style={{
                     display: 'block',
                     maxWidth: 260,
@@ -65,7 +66,21 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
                     objectFit: 'cover',
                   }}
                 />
-              </a>
+              ) : (
+                <a href={msg.mediaUrl} target="_blank" rel="noreferrer">
+                  <img
+                    src={msg.mediaUrl}
+                    alt="圖片"
+                    style={{
+                      display: 'block',
+                      maxWidth: 260,
+                      maxHeight: 280,
+                      borderRadius: msg.text ? '10px 10px 0 0' : 10,
+                      objectFit: 'cover',
+                    }}
+                  />
+                </a>
+              )
             )}
             {msg.text && (
               <span style={{ display: 'block', padding: msg.mediaUrl ? '8px 10px 6px' : 0 }}>

@@ -14,7 +14,7 @@ export async function uploadToCloudinary(file, folder = 'chat-images') {
   formData.append('folder', sig.folder)
 
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${sig.cloud_name}/auto/upload`,
     { method: 'POST', body: formData }
   )
   const data = await res.json()
