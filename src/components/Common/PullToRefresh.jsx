@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Icon from './Icon'
 
 export default function PullToRefresh({ children, isMobile }) {
   const [pullY, setPullY] = useState(0)
@@ -83,9 +84,10 @@ export default function PullToRefresh({ children, isMobile }) {
       }}>
         <div className={refreshing ? 'animate-spin' : ''} style={{
           transform: `rotate(${pullY * 2}deg)`,
-          transition: isPulling ? 'none' : 'all 0.3s'
+          transition: isPulling ? 'none' : 'all 0.3s',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
-          {refreshing ? '⏳' : '⬇️'}
+          {refreshing ? <Icon name="loading" fallback="⏳" size={24} style={{ filter: 'grayscale(1)' }} /> : <Icon name="arrow_down" fallback="⬇️" size={24} style={{ filter: 'grayscale(1)' }} />}
         </div>
       </div>
       

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useStore from '../../store/useStore'
+import Icon from '../Common/Icon'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -41,9 +42,8 @@ export default function LoginPage() {
             background: '#06C755',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px',
-            fontSize: 36,
           }}>
-            💬
+            <Icon name="chat" fallback="💬" size={36} style={{ filter: 'brightness(0) invert(1)' }} />
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 700, color: '#1a1a1a', margin: 0 }}>LinePro</h1>
           <p style={{ color: '#888', marginTop: 6, fontSize: 14 }}>登入您的帳號</p>

@@ -4,6 +4,7 @@ import { useTheme } from '../../theme/ThemeContext'
 import useIsMobile from '../../hooks/useIsMobile'
 import { THEMES } from '../../theme/themes'
 import { messagesApi } from '../../api/messages'
+import Icon from '../Common/Icon'
 
 const THEME_SWATCHES = {
   purple: ['#8661C1', '#BE97C6', '#EFBCD5', '#FFFFFF'],
@@ -100,11 +101,15 @@ export default function SettingsPanel({ onClose }) {
           display: 'flex',
           flexDirection: 'column',
         }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: theme.isDark ? '#f0f0f0' : '#1a1a1a', marginBottom: 16, paddingLeft: 4 }}>
-            ⚙️ 設定
+          <div style={{ fontWeight: 700, fontSize: 16, color: theme.isDark ? '#f0f0f0' : '#1a1a1a', marginBottom: 16, paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="settings" fallback="⚙️" size={18} style={{ filter: theme.isDark ? 'brightness(0) invert(1)' : 'brightness(0)' }} /> 設定
           </div>
-          <button style={sectionBtnStyle('theme')} onClick={() => setActiveSection('theme')}>🎨 主題顏色</button>
-          <button style={sectionBtnStyle('chat')} onClick={() => setActiveSection('chat')}>🗑️ 刪除聊天室</button>
+          <button style={{ ...sectionBtnStyle('theme'), display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => setActiveSection('theme')}>
+            <Icon name="theme" fallback="🎨" size={16} style={{ filter: (activeSection === 'theme' ? (theme.id === 'bw' || theme.id === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)') : (theme.isDark ? 'brightness(0) invert(1) opacity(0.5)' : 'brightness(0) opacity(0.6)') ) }} /> 主題顏色
+          </button>
+          <button style={{ ...sectionBtnStyle('chat'), display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => setActiveSection('chat')}>
+            <Icon name="delete" fallback="🗑️" size={16} style={{ filter: (activeSection === 'chat' ? (theme.id === 'bw' || theme.id === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)') : (theme.isDark ? 'brightness(0) invert(1) opacity(0.5)' : 'brightness(0) opacity(0.6)') ) }} /> 刪除聊天室
+          </button>
           <div style={{ flex: 1 }} />
           <button onClick={onClose} style={{
             padding: '8px 12px', borderRadius: 8,
@@ -240,7 +245,9 @@ export default function SettingsPanel({ onClose }) {
             borderRadius: 16, padding: 28, width: 340,
             boxShadow: '0 16px 48px rgba(0,0,0,0.3)',
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
+            <div style={{ textAlign: 'center', marginBottom: 12 }}>
+              <Icon name="delete" fallback="🗑️" size={48} style={{ filter: theme.isDark ? 'brightness(0) invert(1) opacity(0.8)' : 'brightness(0) opacity(0.6)' }} />
+            </div>
             <h4 style={{ fontSize: 16, fontWeight: 700, color: theme.isDark ? '#f0f0f0' : '#1a1a1a', textAlign: 'center', marginBottom: 8 }}>
               確認刪除
             </h4>

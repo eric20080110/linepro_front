@@ -2,6 +2,7 @@ import { useState } from 'react'
 import useStore from '../../store/useStore'
 import { useTheme } from '../../theme/ThemeContext'
 import Avatar from '../Common/Avatar'
+import Icon from '../Common/Icon'
 import { formatDistanceToNow } from 'date-fns'
 import { zhTW } from 'date-fns/locale'
 
@@ -69,7 +70,7 @@ export default function ChatList() {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {filtered.length === 0 && (
           <div style={{ padding: 32, textAlign: 'center', color: '#aaa', fontSize: 14 }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>💬</div>
+            <div style={{ marginBottom: 8 }}><Icon name="chat" fallback="💬" size={40} style={{ filter: 'grayscale(1) opacity(0.5)' }} /></div>
             <div style={{ color: textSecondary }}>尚無對話</div>
             <div style={{ fontSize: 12, marginTop: 4, color: textSecondary }}>去加好友開始聊天吧！</div>
           </div>
@@ -98,9 +99,9 @@ export default function ChatList() {
                   <div style={{
                     position: 'absolute', bottom: -2, right: -2,
                     background: theme.primary, borderRadius: '50%',
-                    width: 18, height: 18, fontSize: 10, border: '2px solid white',
+                    width: 18, height: 18, border: '2px solid white',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>👥</div>
+                  }}><Icon name="groups" fallback="👥" size={10} style={{ filter: 'brightness(0) invert(1)' }} /></div>
                 )}
               </div>
               <div style={{ flex: 1, overflow: 'hidden' }}>

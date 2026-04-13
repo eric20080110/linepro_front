@@ -9,11 +9,12 @@ import FriendList from '../Friends/FriendList'
 import GroupList from '../Groups/GroupList'
 import ProfilePanel from './ProfilePanel'
 import SettingsPanel from '../Settings/SettingsPanel'
+import Icon from '../Common/Icon'
 
 const tabs = [
-  { id: 'chats', label: '聊天', icon: '💬' },
-  { id: 'friends', label: '好友', icon: '👥' },
-  { id: 'groups', label: '群組', icon: '🏠' },
+  { id: 'chats', label: '聊天', icon: 'chat', fallback: '💬' },
+  { id: 'friends', label: '好友', icon: 'friends', fallback: '👥' },
+  { id: 'groups', label: '群組', icon: 'groups', fallback: '🏠' },
 ]
 
 export default function Sidebar() {
@@ -75,7 +76,7 @@ export default function Sidebar() {
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
             >
-              ⚙️
+              <Icon name="settings" fallback="⚙️" size={20} style={{ filter: 'brightness(0) invert(1)' }} />
             </button>
             <button
               onClick={handleLogout}
@@ -109,7 +110,8 @@ export default function Sidebar() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
               }}
             >
-              <span>{tab.icon}</span><span>{tab.label}</span>
+              <Icon name={tab.icon} fallback={tab.fallback} size={20} style={{ filter: activeTab === tab.id ? 'brightness(0) invert(1)' : 'brightness(0) invert(1) opacity(0.65)' }} />
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>

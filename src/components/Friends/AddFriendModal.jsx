@@ -3,6 +3,7 @@ import useStore from '../../store/useStore'
 import { usersApi } from '../../api/users'
 import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
+import Icon from '../Common/Icon'
 
 export default function AddFriendModal({ onClose }) {
   const { currentUser, friends, sendFriendRequest } = useStore()
@@ -83,7 +84,7 @@ export default function AddFriendModal({ onClose }) {
           )}
           {!loading && !search && (
             <div style={{ padding: 32, textAlign: 'center', color: '#aaa', fontSize: 14 }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+              <div style={{ marginBottom: 8 }}><Icon name="search" fallback="🔍" size={32} style={{ filter: 'grayscale(1) opacity(0.5)' }} /></div>
               輸入姓名或信箱搜尋
             </div>
           )}

@@ -3,6 +3,7 @@ import useStore from '../../store/useStore'
 import { useTheme } from '../../theme/ThemeContext'
 import Avatar from '../Common/Avatar'
 import AddFriendModal from './AddFriendModal'
+import Icon from '../Common/Icon'
 
 export default function FriendList() {
   const {
@@ -89,7 +90,7 @@ export default function FriendList() {
         {friendsLoading && <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>載入中...</div>}
         {!friendsLoading && filtered.length === 0 && (
           <div style={{ padding: 32, textAlign: 'center', color: '#aaa', fontSize: 14 }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>👥</div>
+            <div style={{ marginBottom: 8 }}><Icon name="friends" fallback="👥" size={40} style={{ filter: 'grayscale(1) opacity(0.5)' }} /></div>
             <div style={{ color: textSecondary }}>尚無好友</div>
             <div style={{ fontSize: 12, marginTop: 4, color: textSecondary }}>點擊「加好友」開始連結！</div>
           </div>

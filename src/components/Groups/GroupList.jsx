@@ -3,6 +3,7 @@ import useStore from '../../store/useStore'
 import { useTheme } from '../../theme/ThemeContext'
 import Avatar from '../Common/Avatar'
 import CreateGroupModal from './CreateGroupModal'
+import Icon from '../Common/Icon'
 
 export default function GroupList() {
   const { groups, groupsLoading, setActiveChat, setActiveTab, leaveGroup } = useStore()
@@ -59,7 +60,7 @@ export default function GroupList() {
         {groupsLoading && <div style={{ padding: 24, textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>載入中...</div>}
         {!groupsLoading && filtered.length === 0 && (
           <div style={{ padding: 32, textAlign: 'center', color: '#aaa', fontSize: 14 }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>🏠</div>
+            <div style={{ marginBottom: 8 }}><Icon name="groups" fallback="🏠" size={40} style={{ filter: 'grayscale(1) opacity(0.5)' }} /></div>
             <div style={{ color: textSecondary }}>尚無群組</div>
             <div style={{ fontSize: 12, marginTop: 4, color: textSecondary }}>建立群組一起聊天吧！</div>
           </div>
@@ -68,12 +69,13 @@ export default function GroupList() {
           <div key={group._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: `1px solid ${rowBorder}` }}>
             <div style={{ position: 'relative' }}>
               <Avatar user={{ name: group.name, avatarColor: group.avatarColor }} size={46} />
-              <div style={{
-                position: 'absolute', bottom: -2, right: -2,
-                background: theme.primary, borderRadius: '50%',
-                width: 18, height: 18, fontSize: 10, border: '2px solid white',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>👥</div>
+                  <div style={{
+                    position: 'absolute', bottom: -2, right: -2,
+                    background: theme.primary, borderRadius: '50%',
+                    width: 18, height: 18, border: '2px solid white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}><Icon name="groups" fallback="👥" size={10} style={{ filter: 'brightness(0) invert(1)' }} /></div>
+                )
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: textPrimary }}>{group.name}</div>

@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar/Sidebar'
 import ChatWindow from './components/Chat/ChatWindow'
 import CallModal from './components/Chat/CallModal'
 import PullToRefresh from './components/Common/PullToRefresh'
+import Icon from './components/Common/Icon'
 
 export default function App() {
   const { isSignedIn, isLoaded } = useUser()
@@ -35,7 +36,7 @@ export default function App() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: theme.loginGradient,
       }}>
-        <div className="animate-spin" style={{ fontSize: 40 }}>⏳</div>
+        <Icon name="loading" fallback="⏳" size={40} className="animate-spin" />
       </div>
     )
   }
@@ -59,7 +60,7 @@ export default function App() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: theme.loginGradient, flexDirection: 'column', gap: 12,
       }}>
-        <div className="animate-pulse" style={{ fontSize: 40 }}>💬</div>
+        <Icon name="chat" fallback="💬" size={40} className="animate-pulse" />
         <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 600 }}>正在同步帳號資料...</p>
       </div>
     )

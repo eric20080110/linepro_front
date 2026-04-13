@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import useStore from '../../store/useStore'
 import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
+import Icon from '../Common/Icon'
 import { uploadToCloudinary } from '../../utils/cloudinaryUpload'
 
 export default function ProfilePanel({ onClose }) {
@@ -67,8 +68,7 @@ export default function ProfilePanel({ onClose }) {
                 position: 'absolute', inset: 0, borderRadius: '50%',
                 background: 'rgba(0,0,0,0.45)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'white', fontSize: 20,
-              }}><span className="animate-spin">⏳</span></div>
+              }}><Icon name="loading" fallback="⏳" size={24} className="animate-spin" style={{ filter: 'brightness(0) invert(1)' }} /></div>
             )}
             {!uploadingAvatar && (
               <div style={{
@@ -76,8 +76,7 @@ export default function ProfilePanel({ onClose }) {
                 width: 24, height: 24, borderRadius: '50%',
                 background: '#06C755', border: '2px solid white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, color: 'white',
-              }}>📷</div>
+              }}><Icon name="camera" fallback="📷" size={14} style={{ filter: 'brightness(0) invert(1)' }} /></div>
             )}
           </div>
           <input

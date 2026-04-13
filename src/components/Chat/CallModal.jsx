@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import useStore from '../../store/useStore'
 import Avatar from '../Common/Avatar'
+import Icon from '../Common/Icon'
 
 const ICE_SERVERS = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
 
@@ -168,20 +169,26 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
       }}>
         {isIncoming ? (
           <>
-            <ControlBtn color="#22c55e" label="接聽" onClick={() => { setStatus('通話中') }}>📞</ControlBtn>
+            <ControlBtn color="#22c55e" label="接聽" onClick={() => { setStatus('通話中') }}>
+              <Icon name="call" fallback="📞" size={24} style={{ filter: 'brightness(0) invert(1)' }} />
+            </ControlBtn>
             <ControlBtn color="#ef4444" label="拒絕" onClick={() => {
               socket?.emit('call_rejected', { callerId: partnerId })
               hangup(false)
-            }}>❌</ControlBtn>
+            }}>
+              <Icon name="close" fallback="❌" size={24} style={{ filter: 'brightness(0) invert(1)' }} />
+            </ControlBtn>
           </>
         ) : (
           <>
             <ControlBtn color={muted ? '#555' : '#333'} label={muted ? '取消靜音' : '靜音'} onClick={toggleMute}>
-              {muted ? '🔇' : '🎤'}
+              {muted ? <Icon name="mic_off" fallback="🔇" size={24} style={{ filter: 'brightness(0) invert(1)' }} /> : <Icon name="mic" fallback="🎤" size={24} style={{ filter: 'brightness(0) invert(1)' }} />}
             </ControlBtn>
-            <ControlBtn color="#ef4444" label="掛斷" onClick={() => hangup(true)} size={64}>📵</ControlBtn>
+            <ControlBtn color="#ef4444" label="掛斷" onClick={() => hangup(true)} size={64}>
+              <Icon name="call_end" fallback="📵" size={28} style={{ filter: 'brightness(0) invert(1)' }} />
+            </ControlBtn>
             <ControlBtn color={videoOff ? '#555' : '#333'} label={videoOff ? '開啟鏡頭' : '關閉鏡頭'} onClick={toggleVideo}>
-              {videoOff ? '📷' : '🎥'}
+              {videoOff ? <Icon name="videocam_off" fallback="📷" size={24} style={{ filter: 'brightness(0) invert(1)' }} /> : <Icon name="videocam" fallback="🎥" size={24} style={{ filter: 'brightness(0) invert(1)' }} />}
             </ControlBtn>
           </>
         )}

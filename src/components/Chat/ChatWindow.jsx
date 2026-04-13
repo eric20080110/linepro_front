@@ -6,6 +6,7 @@ import Avatar from '../Common/Avatar'
 import MessageBubble from './MessageBubble'
 import GroupInfoPanel from '../Groups/GroupInfoPanel'
 import { uploadToCloudinary } from '../../utils/cloudinaryUpload'
+import Icon from '../Common/Icon'
 
 export default function ChatWindow() {
   const { currentUser, activeChat, setActiveChat, getMessages, sendMessage, messagesLoading, setActiveCall } = useStore()
@@ -63,7 +64,7 @@ export default function ChatWindow() {
         alignItems: 'center', justifyContent: 'center',
         background: theme.chatBg, gap: 16,
       }}>
-        <div style={{ fontSize: 80 }}>💬</div>
+        <Icon name="chat" fallback="💬" size={80} style={{ filter: 'grayscale(1) opacity(0.5)' }} />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: textPrimary }}>LinePro</h2>
         <p style={{ color: textSecondary, fontSize: 15, textAlign: 'center', maxWidth: 280 }}>
           選擇一個對話開始聊天<br />或加好友建立新對話
@@ -266,7 +267,7 @@ export default function ChatWindow() {
             }}
             title="視訊通話"
           >
-            📹
+            <Icon name="video_call" fallback="📹" size={24} style={{ filter: theme.isDark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
           </button>
         )}
         {activeChat.type === 'group' && (
@@ -290,13 +291,13 @@ export default function ChatWindow() {
       >
         {messagesLoading && (
           <div style={{ textAlign: 'center', padding: '40px 0', color: textSecondary, fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div className="animate-spin" style={{ fontSize: 24 }}>⏳</div>
+            <Icon name="loading" fallback="⏳" size={24} className="animate-spin" style={{ filter: 'grayscale(1) opacity(0.5)' }} />
             載入訊息中...
           </div>
         )}
         {!messagesLoading && groupedMessages.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0', color: textSecondary, fontSize: 14 }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>👋</div>
+            <div style={{ marginBottom: 8 }}><Icon name="wave" fallback="👋" size={40} /></div>
             傳送第一則訊息開始聊天吧！
           </div>
         )}
@@ -359,7 +360,7 @@ export default function ChatWindow() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {uploadingPhoto ? <span className="animate-spin">⏳</span> : '📷'}
+          {uploadingPhoto ? <Icon name="loading" fallback="⏳" size={20} className="animate-spin" /> : <Icon name="camera" fallback="📷" size={20} style={{ filter: theme.isDark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />}
         </button>
 
         {isRecording ? (
@@ -407,12 +408,17 @@ export default function ChatWindow() {
           style={{
             width: 44, height: 44, borderRadius: '50%',
             background: (input.trim() && !sending) || isRecording ? theme.buttonPrimary : (theme.isDark ? '#333' : '#e5e7eb'),
-            color: 'white', fontSize: 18,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, transition: 'background 0.2s',
           }}
         >
-          {sending && !isRecording ? <span className="animate-spin">⏳</span> : isRecording ? '⬆️' : (!input.trim() ? '🎤' : '➤')}
+          {sending && !isRecording 
+            ? <Icon name="loading" fallback="⏳" size={20} className="animate-spin" style={{ filter: 'brightness(0) invert(1)' }} /> 
+            : isRecording 
+              ? <Icon name="send_audio" fallback="⬆️" size={20} style={{ filter: 'brightness(0) invert(1)' }} /> 
+              : (!input.trim() 
+                ? <Icon name="mic" fallback="🎤" size={20} style={{ filter: 'brightness(0) invert(1)' }} /> 
+                : <Icon name="send" fallback="➤" size={20} style={{ filter: 'brightness(0) invert(1)' }} />)}
         </button>
       </div>
 
