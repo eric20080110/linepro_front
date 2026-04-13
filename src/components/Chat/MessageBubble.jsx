@@ -3,7 +3,6 @@ import Avatar from '../Common/Avatar'
 import { useTheme } from '../../theme/ThemeContext'
 import useStore from '../../store/useStore'
 import useIsMobile from '../../hooks/useIsMobile'
-import Icon from '../Common/Icon'
 import { format } from 'date-fns'
 
 const REACTION_EMOJIS = ['❤️', '😭', '😂', '😡', '👍']
@@ -11,14 +10,18 @@ const REACTION_EMOJIS = ['❤️', '😭', '😂', '😡', '👍']
 export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyMsg, readCount, onImageClick }) {
   const theme = useTheme()
   const isMobile = useIsMobile()
-  const { jumpToMessage, setReplyingTo, recallMessage, pinMessage, reactToMessage, currentUser } = useStore()
-  
+  const { jumpToMessage, setReplyingTo, recallMessage, pinMessage, reactToMessage } = useStore()
+
   const [showMenu, setShowMenu] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 'auto', right: 'auto' })
+  const [isHovered, setIsHovered] = useState(false)
   const [swipeOffset, setSwipeY] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
-  
+
   const menuRef = useRef(null)
+  const dotsRef = useRef(null)
   const startX = useRef(0)
+  const longPressTimer = useRef(null)
 
   const time = format(new Date(msg.timestamp || msg.createdAt), 'HH:mm')
   const isVideo = msg.mediaUrl?.match(/\.(mp4|webm|ogg|mov)$/i) && !msg.mediaUrl?.includes('chat-audio')
@@ -28,30 +31,31 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
   const bubbleOtherText   = theme.isDark ? (theme.bubbleOtherText || '#f0f0f0') : '#1a1a1a'
   const bubbleOtherBorder = theme.isDark ? (theme.bubbleOtherBorder || '#3a3a3a') : '#e5e7eb'
 
-  // Close menu on click outside
+  // Close menu on outside click
   useEffect(() => {
+    if (!showMenu) return
     const handleClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false)
+      if (menuRef.current && !menuRef.current.contains(e.target) &&
+          dotsRef.current && !dotsRef.current.contains(e.target)) {
+        setShowMenu(false)
+      }
     }
-    if (showMenu) document.addEventListener('mousedown', handleClick)
+    document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [showMenu])
 
-  // --- Mobile Swipe Handlers ---
+  // ── Mobile Swipe ──────────────────────────────────────────────────────────
   const handleTouchStart = (e) => {
     if (msg.isRecalled) return
     startX.current = e.touches[0].clientX
     setIsSwiping(true)
   }
-
   const handleTouchMove = (e) => {
     if (!isSwiping) return
     const diff = e.touches[0].clientX - startX.current
-    // Swipe towards center: if isMe (right), swipe left (negative). If !isMe (left), swipe right (positive).
     const offset = isMe ? Math.min(0, Math.max(diff, -60)) : Math.max(0, Math.min(diff, 60))
     setSwipeY(offset)
   }
-
   const handleTouchEnd = () => {
     if (Math.abs(swipeOffset) >= 50) {
       setReplyingTo(msg)
@@ -61,16 +65,39 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
     setIsSwiping(false)
   }
 
-  // --- Long Press Logic ---
-  const timer = useRef(null)
+  // ── Long Press (mobile menu) ──────────────────────────────────────────────
   const handlePressStart = () => {
     if (!isMobile || msg.isRecalled) return
-    timer.current = setTimeout(() => {
+    longPressTimer.current = setTimeout(() => {
+      // Center of screen for mobile
+      setMenuPos({ top: window.innerHeight / 2 - 120, left: '50%', right: 'auto', centerX: true })
       setShowMenu(true)
       if (window.navigator.vibrate) window.navigator.vibrate(20)
     }, 500)
   }
-  const handlePressEnd = () => clearTimeout(timer.current)
+  const handlePressEnd = () => clearTimeout(longPressTimer.current)
+
+  // ── Desktop three-dots click ──────────────────────────────────────────────
+  const handleDotsClick = (e) => {
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const menuWidth = 200
+    // Prefer showing below the button; flip up if near bottom
+    const spaceBelow = window.innerHeight - rect.bottom
+    const top = spaceBelow > 260 ? rect.bottom + 4 : rect.top - 264
+
+    let left, right
+    if (isMe) {
+      // menu right edge = button right edge
+      right = window.innerWidth - rect.right
+      left = 'auto'
+    } else {
+      left = Math.min(rect.left, window.innerWidth - menuWidth - 8)
+      right = 'auto'
+    }
+    setMenuPos({ top, left, right, centerX: false })
+    setShowMenu(s => !s)
+  }
 
   const groupReactions = () => {
     const counts = {}
@@ -92,15 +119,18 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
     )
   }
 
+  const accentColor = msg.replyTo?.senderColor || theme.primary || '#06C755'
+
   return (
-    <div 
+    <div
       id={`msg-${msg._id}`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onMouseDown={handlePressStart}
       onMouseUp={handlePressEnd}
-      onMouseLeave={handlePressEnd}
+      onMouseLeave={() => { handlePressEnd(); setIsHovered(false) }}
+      onMouseEnter={() => setIsHovered(true)}
       style={{
         display: 'flex',
         flexDirection: isMe ? 'row-reverse' : 'row',
@@ -113,11 +143,11 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
         transition: isSwiping ? 'none' : 'transform 0.2s',
       }}
     >
-      {/* Swipe Indicator */}
+      {/* Swipe indicator */}
       {Math.abs(swipeOffset) > 20 && (
         <div style={{
-          position: 'absolute', [isMe ? 'right' : 'left']: -30, top: '50%', transform: 'translateY(-50%)',
-          opacity: Math.abs(swipeOffset) / 60, fontSize: 18
+          position: 'absolute', [isMe ? 'right' : 'left']: -30, top: '50%',
+          transform: 'translateY(-50%)', opacity: Math.abs(swipeOffset) / 60, fontSize: 18,
         }}>↩️</div>
       )}
 
@@ -125,11 +155,9 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
       {showAvatar && isMe  && <div style={{ width: 32 }} />}
 
       <div style={{
-        display: 'flex',
-        flexDirection: 'column',
+        display: 'flex', flexDirection: 'column',
         alignItems: isMe ? 'flex-end' : 'flex-start',
-        maxWidth: '75%',
-        position: 'relative'
+        maxWidth: '75%', position: 'relative',
       }}>
         {showAvatar && !isMe && (
           <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 3, paddingLeft: 4 }}>
@@ -137,90 +165,137 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
           </div>
         )}
 
-        {/* Reply Context */}
-        {msg.replyTo && (
-          <div 
-            onClick={() => jumpToMessage(msg.replyToId)}
-            style={{
-              padding: '6px 10px', borderRadius: 12, background: 'rgba(0,0,0,0.05)',
-              fontSize: 12, color: '#888', marginBottom: -8, paddingBottom: 12,
-              borderLeft: `3px solid ${theme.primary}`, cursor: 'pointer', maxWidth: '100%',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-            }}
-          >
-            <div style={{ fontWeight: 700, fontSize: 11, color: theme.primary }}>{msg.replyTo.senderName}</div>
-            {msg.replyTo.text}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
 
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
-          {/* Bubble */}
-          <div 
-            onContextMenu={(e) => { e.preventDefault(); setShowMenu(true) }}
+          {/* ── Bubble ────────────────────────────────────────────────── */}
+          <div
+            onContextMenu={(e) => {
+              e.preventDefault()
+              const menuWidth = 200
+              const spaceBelow = window.innerHeight - e.clientY
+              const top = spaceBelow > 260 ? e.clientY + 4 : e.clientY - 264
+              const left = isMe
+                ? Math.max(8, e.clientX - menuWidth)
+                : Math.min(e.clientX, window.innerWidth - menuWidth - 8)
+              setMenuPos({ top, left, right: 'auto', centerX: false })
+              setShowMenu(true)
+            }}
             style={{
-              padding: msg.mediaUrl && !msg.text ? 4 : '10px 14px',
+              padding: msg.mediaUrl && !msg.text && !msg.replyTo ? 4 : '10px 14px',
               borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
               background: isMe ? theme.bubbleMe : bubbleOtherBg,
               color: isMe ? theme.bubbleMeText : bubbleOtherText,
-              fontSize: 15,
-              lineHeight: '1.5',
+              fontSize: 15, lineHeight: '1.5',
               boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
-              wordBreak: 'break-word',
-              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word', whiteSpace: 'pre-wrap',
               border: isMe ? 'none' : `1px solid ${bubbleOtherBorder}`,
-              position: 'relative'
+              position: 'relative',
             }}
           >
+            {/* ── Reply context (inside bubble) ─────────────────────── */}
+            {msg.replyTo && (
+              <div
+                onClick={(e) => { e.stopPropagation(); jumpToMessage(msg.replyToId) }}
+                style={{
+                  display: 'flex', flexDirection: 'column',
+                  borderLeft: `3px solid ${accentColor}`,
+                  borderRadius: 6,
+                  padding: '4px 8px',
+                  marginBottom: 8,
+                  background: isMe ? 'rgba(0,0,0,0.18)' : (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                  cursor: 'pointer',
+                  maxWidth: 260,
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{
+                  fontWeight: 700, fontSize: 11,
+                  color: isMe ? '#fff' : accentColor,
+                  marginBottom: 2, opacity: isMe ? 0.85 : 1,
+                }}>
+                  {msg.replyTo.senderName}
+                </div>
+                <div style={{
+                  fontSize: 12,
+                  color: isMe ? 'rgba(255,255,255,0.75)' : (theme.isDark ? '#aaa' : '#666'),
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {msg.replyTo.text || (msg.replyTo.mediaUrl ? '📷 媒體檔案' : '')}
+                </div>
+              </div>
+            )}
+
+            {/* ── Media ─────────────────────────────────────────────── */}
             {msg.mediaUrl && (
               isAudio ? (
                 <audio controls src={msg.mediaUrl} style={{ display: 'block', maxWidth: 200 }} />
               ) : isVideo ? (
-                <div onClick={() => onImageClick && onImageClick({ url: msg.mediaUrl, type: 'video' })} style={{ cursor: 'zoom-in' }}>
+                <div onClick={() => onImageClick?.({ url: msg.mediaUrl, type: 'video' })} style={{ cursor: 'zoom-in' }}>
                   <video src={msg.mediaUrl} style={{ display: 'block', maxWidth: 260, maxHeight: 280, borderRadius: 10, objectFit: 'cover', pointerEvents: 'none' }} />
                 </div>
               ) : (
-                <div onClick={() => onImageClick && onImageClick({ url: msg.mediaUrl, type: 'image' })} style={{ cursor: 'zoom-in' }}>
+                <div onClick={() => onImageClick?.({ url: msg.mediaUrl, type: 'image' })} style={{ cursor: 'zoom-in' }}>
                   <img src={msg.mediaUrl} alt="media" style={{ display: 'block', maxWidth: 260, maxHeight: 280, borderRadius: 10, objectFit: 'cover' }} />
                 </div>
               )
             )}
+
+            {/* ── Text ──────────────────────────────────────────────── */}
             {msg.text && (
               <span style={{ display: 'block', padding: msg.mediaUrl ? '8px 10px 6px' : 0 }}>
-                {msg.text.split(/(https?:\/\/[^\s]+)/g).map((part, i) => part.match(/^https?:\/\/[^\s]+$/) ? <a key={i} href={part} target="_blank" rel="noreferrer" style={{ color: isMe ? '#fff' : (theme.primary || '#06C755'), textDecoration: 'underline', wordBreak: 'break-all' }} onClick={e => e.stopPropagation()}>{part}</a> : part)}
+                {msg.text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                  part.match(/^https?:\/\/[^\s]+$/)
+                    ? <a key={i} href={part} target="_blank" rel="noreferrer"
+                        style={{ color: isMe ? '#fff' : (theme.primary || '#06C755'), textDecoration: 'underline', wordBreak: 'break-all' }}
+                        onClick={e => e.stopPropagation()}>{part}</a>
+                    : part
+                )}
               </span>
             )}
 
-            {/* Reactions Display */}
+            {/* ── Reactions ─────────────────────────────────────────── */}
             {msg.reactions?.length > 0 && (
               <div style={{
-                position: 'absolute', bottom: -10, [isMe ? 'left' : 'right']: -4,
-                display: 'flex', gap: 2, background: 'white', borderRadius: 12,
-                padding: '2px 6px', boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                border: '1px solid #eee', zIndex: 2
+                position: 'absolute', bottom: -12, [isMe ? 'left' : 'right']: -4,
+                display: 'flex', gap: 2,
+                background: theme.isDark ? '#333' : 'white',
+                borderRadius: 12, padding: '2px 8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                border: `1px solid ${theme.isDark ? '#444' : '#eee'}`, zIndex: 2,
               }}>
                 {groupReactions().map(([emoji, count]) => (
-                  <span key={emoji} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {emoji} {count > 1 && <span style={{ fontSize: 10, color: '#666', fontWeight: 700 }}>{count}</span>}
+                  <span key={emoji} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {emoji}
+                    {count > 1 && <span style={{ fontSize: 10, color: theme.isDark ? '#ccc' : '#666', fontWeight: 700 }}>{count}</span>}
                   </span>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Context Menu (Desktop Three Dots / Triggered by Right Click or Long Press) */}
-          {!isMobile && !showMenu && (
-            <button 
-              className="msg-more-btn"
-              onClick={() => setShowMenu(true)}
+          {/* ── Desktop three-dots button ────────────────────────────── */}
+          {!isMobile && (
+            <button
+              ref={dotsRef}
+              onClick={handleDotsClick}
               style={{
-                background: 'none', color: '#9ca3af', opacity: 0, 
-                transition: 'opacity 0.2s', padding: 4, cursor: 'pointer'
+                width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                background: isHovered
+                  ? (theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)')
+                  : 'transparent',
+                color: theme.isDark ? '#aaa' : '#6b7280',
+                opacity: isHovered ? 1 : 0.35,
+                transition: 'all 0.15s',
+                fontSize: 20, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', cursor: 'pointer', lineHeight: 1,
+                padding: 0,
               }}
             >⋮</button>
           )}
 
-          {/* Time & Read Status */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+          {/* ── Time & read status ───────────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', minWidth: 40 }}>
             <div style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0 }}>{time}</div>
             {isMe && isLastMyMsg && (
               <div style={{ fontSize: 11, color: readCount > 0 ? theme.primary : '#9ca3af', fontWeight: readCount > 0 ? 600 : 400 }}>
@@ -231,57 +306,80 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
         </div>
       </div>
 
-      {/* Action Menu & Emoji Bar */}
+      {/* ── Floating action menu (position: fixed, never clipped) ────────── */}
       {showMenu && (
-        <div 
+        <div
           ref={menuRef}
           style={{
-            position: 'absolute', top: isMobile ? '50%' : 'auto', left: isMobile ? '50%' : (isMe ? 'auto' : '100%'),
-            right: isMe && !isMobile ? '100%' : 'auto',
-            transform: isMobile ? 'translate(-50%, -50%)' : 'none',
-            zIndex: 100, background: theme.isDark ? '#2d2d2d' : 'white',
-            borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-            padding: 8, minWidth: 160, border: `1px solid ${theme.isDark ? '#444' : '#eee'}`
+            position: 'fixed',
+            top: menuPos.top,
+            left: menuPos.centerX ? '50%' : menuPos.left,
+            right: menuPos.centerX ? 'auto' : menuPos.right,
+            transform: menuPos.centerX ? 'translateX(-50%)' : 'none',
+            zIndex: 9999,
+            background: theme.isDark ? (theme.cardBg || '#2d2d2d') : 'white',
+            borderRadius: 16,
+            boxShadow: '0 12px 48px rgba(0,0,0,0.28)',
+            padding: '12px 8px',
+            minWidth: 196,
+            border: `1px solid ${theme.isDark ? '#444' : '#eee'}`,
           }}
         >
-          {/* Emoji Bar */}
-          <div style={{ display: 'flex', gap: 10, padding: '4px 8px 12px', borderBottom: `1px solid ${theme.isDark ? '#444' : '#eee'}`, marginBottom: 8, justifyContent: 'center' }}>
+          {/* Emoji bar */}
+          <div style={{
+            display: 'flex', gap: 10, padding: '4px 10px 12px',
+            borderBottom: `1px solid ${theme.isDark ? '#444' : '#eee'}`,
+            marginBottom: 6, justifyContent: 'center',
+          }}>
             {REACTION_EMOJIS.map(emoji => (
-              <button 
-                key={emoji} 
+              <button
+                key={emoji}
                 onClick={() => { reactToMessage(msg._id, emoji); setShowMenu(false) }}
-                style={{ fontSize: 20, background: 'none', transition: 'transform 0.1s' }}
-                onMouseEnter={e => e.target.style.transform = 'scale(1.3)'}
-                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                style={{ fontSize: 24, background: 'none', cursor: 'pointer', transition: 'transform 0.1s', padding: 2 }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.35)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
               >{emoji}</button>
             ))}
           </div>
-          {/* Options */}
-          <MenuOption label="回覆" icon="↩️" onClick={() => { setReplyingTo(msg); setShowMenu(false) }} />
-          <MenuOption label={msg.isPinned ? "取消釘選" : "釘選"} icon="📌" onClick={() => { pinMessage(msg._id, !msg.isPinned); setShowMenu(false) }} />
-          {isMe && <MenuOption label="收回" icon="🗑️" color="#ef4444" onClick={() => { recallMessage(msg._id); setShowMenu(false) }} />}
+
+          {/* Menu options */}
+          <MenuOption
+            label="回覆訊息" icon="↩️"
+            onClick={() => { setReplyingTo(msg); setShowMenu(false) }}
+            theme={theme}
+          />
+          <MenuOption
+            label={msg.isPinned ? '取消釘選' : '釘選訊息'} icon="📌"
+            onClick={() => { pinMessage(msg._id, !msg.isPinned); setShowMenu(false) }}
+            theme={theme}
+          />
+          {isMe && (
+            <MenuOption
+              label="收回訊息" icon="🗑️" color="#ef4444"
+              onClick={() => { recallMessage(msg._id); setShowMenu(false) }}
+              theme={theme}
+            />
+          )}
         </div>
       )}
-
-      {/* Global CSS for hover */}
-      <style>{`.msg-more-btn { display: inline-block; } div:hover > div > div > .msg-more-btn { opacity: 1 !important; }`}</style>
     </div>
   )
 }
 
 function MenuOption({ label, icon, onClick, color, theme }) {
   return (
-    <button 
+    <button
       onClick={onClick}
       style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-        padding: '8px 12px', borderRadius: 8, background: 'none',
-        textAlign: 'left', color: color || 'inherit', fontSize: 14, fontWeight: 500
+        padding: '9px 12px', borderRadius: 8, background: 'none',
+        textAlign: 'left', color: color || (theme.isDark ? '#eee' : '#1a1a1a'),
+        fontSize: 14, fontWeight: 500, cursor: 'pointer',
       }}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'}
       onMouseLeave={e => e.currentTarget.style.background = 'none'}
     >
-      <span style={{ fontSize: 16 }}>{icon}</span>
+      <span style={{ fontSize: 17 }}>{icon}</span>
       {label}
     </button>
   )

@@ -14,44 +14,51 @@ linepro/                          ← 前端 (React 19 + Vite)
     components/
       Auth/LoginPage.jsx           ← 已棄用（改用 Clerk SignIn）
       Chat/
-        ChatWindow.jsx             ← 主聊天視窗（手機用 position:fixed + visualViewport）
-        MessageBubble.jsx          ← 訊息氣泡（已讀指示器）
-      Common/Avatar.jsx
+        ChatWindow.jsx             ← 主聊天視窗（100dvh + 捲動鎖定 + 釘選/回覆預覽）
+        MessageBubble.jsx          ← 訊息氣泡（回覆、表情回應、收回、釘選）
+        DMInfoPanel.jsx            ← 好友資訊（媒體、連結、搜尋歷史）
+        ImagePreviewModal.jsx      ← 圖片/影片全螢幕預覽
+        CallModal.jsx              ← 語音/視訊通話介面 (WebRTC)
+      Common/
+        Avatar.jsx                 ← 支援 avatarUrl + 點擊更換
+        Icon.jsx                   ← 自訂圖示系統（自動 fallback 至 Emoji）
+        PullToRefresh.jsx          ← 手機版下拉重新整理
       Friends/
         FriendList.jsx
         AddFriendModal.jsx
       Groups/
         GroupList.jsx
         CreateGroupModal.jsx
-        GroupInfoPanel.jsx
+        GroupInfoPanel.jsx         ← 群組管理（踢人、設管理員、媒體、搜尋、連結）
       Settings/SettingsPanel.jsx   ← 主題切換 + 刪除聊天室
-      Sidebar/
-        Sidebar.jsx                ← 手機用 position:fixed + translateX 滑動
-        ChatList.jsx
-        ProfilePanel.jsx           ← 暱稱 / 狀態訊息編輯
-    hooks/
-      useSocket.js                 ← Socket.io 連線管理（socket 存入 Zustand）
-      useIsMobile.js               ← 手機斷點（window.innerWidth < 768，resize 監聽）
-    store/useStore.js              ← Zustand 全域狀態
-    theme/
-      themes.js                    ← 5 個主題：purple / bw / dark / warm / blue
-      ThemeContext.js
-    index.css                      ← body position:fixed 防止 iOS bounce scroll
-    App.jsx                        ← Clerk Provider + useSocket + syncUser
-
-  server/                          ← 後端 (Node.js + Express + Socket.io)
-    config/db.js                   ← Turso LibSQL 客戶端 + initDB()（自動建表）+ rowToUser()
-    middleware/auth.js             ← Clerk JWT 驗證 → req.userId / req.user
-    routes/
-      users.js                     ← sync / me / search
-      friends.js                   ← 好友清單 / 申請 / 接受 / 拒絕 / 刪除
-      groups.js                    ← 群組 CRUD + 成員管理
-      messages.js                  ← DM / 群組訊息 + 已讀 + 刪除
-    socket/
-      handlers.js                  ← connect / disconnect + 狀態更新（用 Turso）
-      roomHelpers.js               ← getDMRoomId / getGroupRoomId
-    Dockerfile                     ← Node 20 Alpine，供 Render 部署
-    .env                           ← 伺服器環境變數（不進 git）
+            Sidebar/
+              Sidebar.jsx                ← 手機用 position:fixed + translateX 滑動
+              ChatList.jsx
+              ProfilePanel.jsx           ← 暱稱 / 狀態訊息 / 大頭貼編輯
+          hooks/
+            useSocket.js                 ← Socket.io 連線管理 + 系統通知
+            useIsMobile.js               ← 手機斷點（window.innerWidth < 768，resize 監聽）
+          store/useStore.js              ← Zustand 全域狀態（支援訊息預抓與跳轉）
+          theme/
+            themes.js                    ← 5 個主題：purple / bw / dark / warm / blue
+            ThemeContext.jsx
+          index.css                      ← body position:fixed 防止 iOS bounce scroll
+          App.jsx                        ← Clerk Provider + useSocket + syncUser
+      
+        server/                          ← 後端 (Node.js + Express + Socket.io)
+          config/db.js                   ← Turso LibSQL 客戶端（含資料表遷移邏輯）
+          middleware/auth.js             ← Clerk JWT 驗證 → req.userId / req.user
+          routes/
+            users.js                     ← sync / me / search / 暱稱
+            friends.js                   ← 好友清單 / 申請 / 接受 / 拒絕 / 刪除
+            groups.js                    ← 群組 CRUD + 成員管理 (踢人/授權)
+            messages.js                  ← 訊息 CRUD + 已讀 + 釘選 / 回應 / 收回 / 回覆
+            upload.js                    ← Cloudinary 簽名生成
+          socket/
+            handlers.js                  ← WebRTC 信令中繼 + 訊息同步 (Turso)
+          roomHelpers.js                 ← 房間 ID 生成邏輯
+          Dockerfile                     ← Node 20 Alpine，供 Render 部署
+          .env                           ← 伺服器環境變數（不進 git）
 
   CLAUDE.md                        ← 本文件（Claude Code 讀取）
   GEMINI.md                        ← 指向本文件
@@ -61,13 +68,14 @@ linepro/                          ← 前端 (React 19 + Vite)
 
 | 表格 | 重要欄位 |
 |------|----------|
-| `users` | `id` (UUID PK), `clerk_id`, `name`, `nickname`, `email`, `avatar_color`, `status`, `status_message` |
-| `friendships` | `user1_id`, `user2_id`（排序後 UNIQUE，防重複） |
+| `users` | `id`, `clerk_id`, `name`, `nickname`, `avatar_url`, `status`, `status_message` |
+| `friendships` | `user1_id`, `user2_id` |
 | `friend_requests` | `from_id`, `to_id` |
-| `groups` | `id`, `name`, `description`, `avatar_color`, `created_by` |
+| `groups` | `id`, `name`, `description`, `avatar_url`, `created_by` |
 | `group_members` | `group_id`, `user_id`, `is_admin` |
-| `messages` | `id`, `type`(dm/group), `sender_id`, `receiver_id?`, `group_id?`, `text`, `timestamp` |
-| `message_reads` | `message_id`, `user_id`（已讀記錄） |
+| `messages` | `id`, `type`, `sender_id`, `text`, `media_url`, `reply_to_id`, `is_pinned`, `is_recalled`, `timestamp` |
+| `message_reactions` | `message_id`, `user_id`, `emoji` |
+| `message_reads` | `message_id`, `user_id` |
 
 ## 開發指令
 
@@ -101,16 +109,16 @@ VITE_API_URL=https://linepro-back.onrender.com
 ## 開發規範
 
 ### Styling
-- **全部使用 inline styles**，不用 CSS 檔、Tailwind、CSS-in-JS
-- 顏色一律從 `useTheme()` 取得，不要 hardcode
-- 手機版條件判斷用 `useIsMobile()` hook
+- **全部使用 inline styles**，顏色與樣式需跟隨 `useTheme()` 與 `theme` context。
+- 手機版條件判斷用 `useIsMobile()` hook。
 
 ### 手機版架構
-- **body**：`position: fixed` + `overflow: hidden`（防 iOS Safari bounce scroll 造成空白區域）
-- **Sidebar**（手機）：`position: fixed, inset: 0`，`transform: translateX(-100%)` ↔ `translateX(0)` 切換
-- **ChatWindow**（手機）：`position: fixed`，top/height 跟著 `window.visualViewport` 變化（鍵盤彈出時自動縮）
-- **Modal/Panel**（手機）：`position: absolute`（非 fixed，避免 transform 父層造成定位錯誤），從底部滑上
-- 桌面（≥ 768px）：標準 flex row 佈局，不受以上影響
+- **Viewport 鎖定**：`index.css` 與 `App.jsx` 使用 `position: fixed` + `100dvh` 以防止 iOS Safari 橡皮筋回彈及捲動空白。
+- **捲動容器**：使用 `minHeight: 0` 防止 Flex 子元素溢出，並用 `scrollTo` 取代 `scrollIntoView` 避免版面跳動。
+
+### 訊息機制
+- **預抓資料**：App 啟動後自動並行抓取所有聊天室的最新訊息（`fetchAllMessages`）。
+- **訊息跳轉**：支援搜尋結果跳轉，實作「跳轉鎖定」防止自動滑回底部，並帶有高亮動畫。
 
 ### 狀態管理
 - Zustand store：`src/store/useStore.js`
@@ -156,4 +164,7 @@ cd server && git push origin main
 | 2026-04-13 | 新增 CLAUDE.md、GEMINI.md |
 | 2026-04-13 | 資料庫從 MongoDB 遷移至 Turso（LibSQL/SQLite，無需 IP 白名單） |
 | 2026-04-13 | 修正手機鍵盤遮擋：body position:fixed + visualViewport 追蹤 |
-| 2026-04-12 | 新增大頭貼（Cloudinary 簽名上傳）、聊天傳照片、語音/視訊通話（WebRTC + Socket.io 信令） |
+| 2026-04-13 | 新增大頭貼、傳送照片/影片、語音/視訊通話（WebRTC + 信令修復） |
+| 2026-04-13 | 新增暱稱功能、修復手機版版面跑位、新增語音訊息、下拉重新整理、自訂圖示系統 |
+| 2026-04-13 | 群組管理（踢人/授權）、媒體與連結歷史、搜尋跳轉、訊息功能（回覆/回應/收回/釘選） |
+| 2026-04-13 | 新增訊息系統通知、App 啟動自動預抓全站訊息優化效能 |

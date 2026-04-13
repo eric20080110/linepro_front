@@ -197,7 +197,7 @@ const useStore = create((set, get) => ({
   },
 
   handleMemberLeft: (groupId, userId) => {
-    const { currentUser, activeChat, setActiveChat } = get()
+    const { currentUser, activeChat } = get()
     if (userId === currentUser?._id) {
       set(state => ({ 
         groups: state.groups.filter(g => g._id !== groupId),
@@ -360,14 +360,21 @@ const useStore = create((set, get) => ({
 
   updateMessageInStore: (updatedMsg) => {
     const { messages } = get()
-    let key
     const msgId = updatedMsg._id || updatedMsg.id
-    
+    let key
+
     if (updatedMsg.type === 'dm') {
-      const senderId = (updatedMsg.senderId?._id || updatedMsg.senderId).toString()
+      const senderId = (updatedMsg.senderId?._id || updatedMsg.senderId || '').toString()
       const receiverId = (updatedMsg.receiverId?._id || updatedMsg.receiverId || '').toString()
-      // Find the specific DM key
-      key = Object.keys(messages).find(k => k.startsWith('dm:') && k.includes(senderId))
+      // Build the canonical DM key from both participants
+      if (senderId && receiverId) {
+        key = getDMRoomId(senderId, receiverId)
+      } else {
+        // Fallback: scan all DM keys for the message
+        key = Object.keys(messages).find(k =>
+          k.startsWith('dm:') && (messages[k] || []).some(m => (m._id || m.id) === msgId)
+        )
+      }
     } else {
       key = `group:${updatedMsg.groupId?._id || updatedMsg.groupId}`
     }
@@ -377,10 +384,10 @@ const useStore = create((set, get) => ({
     set(state => ({
       messages: {
         ...state.messages,
-        [key]: (state.messages[key] || []).map(m => 
-          m._id === msgId ? { ...m, ...updatedMsg } : m
-        )
-      }
+        [key]: (state.messages[key] || []).map(m =>
+          (m._id || m.id) === msgId ? { ...m, ...updatedMsg } : m
+        ),
+      },
     }))
   },
 
