@@ -6,11 +6,12 @@ import { useSocket } from './hooks/useSocket'
 import { ThemeContext } from './theme/ThemeContext'
 import Sidebar from './components/Sidebar/Sidebar'
 import ChatWindow from './components/Chat/ChatWindow'
+import CallModal from './components/Chat/CallModal'
 
 export default function App() {
   const { isSignedIn, isLoaded } = useUser()
   const { getToken } = useAuth()
-  const { currentUser, syncing, syncUser, theme } = useStore()
+  const { currentUser, syncing, syncUser, theme, activeCall, incomingCall, setActiveCall, setIncomingCall } = useStore()
 
   useEffect(() => {
     setTokenGetter(() => getToken())
@@ -61,6 +62,16 @@ export default function App() {
     )
   }
 
+  const callTarget = activeCall || incomingCall
+  const callPartnerUser = activeCall
+    ? activeCall.partnerUser
+    : (incomingCall ? { _id: incomingCall.callerId, name: incomingCall.callerName } : null)
+
+  const handleCloseCall = () => {
+    setActiveCall(null)
+    setIncomingCall(null)
+  }
+
   return (
     <ThemeContext.Provider value={theme}>
       <div style={{
@@ -69,6 +80,15 @@ export default function App() {
       }}>
         <Sidebar />
         <ChatWindow />
+        {callTarget && callPartnerUser && (
+          <CallModal
+            mode={activeCall ? 'calling' : 'incoming'}
+            partnerId={activeCall?.partnerId ?? incomingCall?.callerId}
+            partnerUser={callPartnerUser}
+            offer={incomingCall?.offer}
+            onClose={handleCloseCall}
+          />
+        )}
       </div>
     </ThemeContext.Provider>
   )

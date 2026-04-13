@@ -5,16 +5,19 @@ import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
 import MessageBubble from './MessageBubble'
 import GroupInfoPanel from '../Groups/GroupInfoPanel'
+import { uploadToCloudinary } from '../../utils/cloudinaryUpload'
 
 export default function ChatWindow() {
-  const { currentUser, activeChat, setActiveChat, getMessages, sendMessage, messagesLoading } = useStore()
+  const { currentUser, activeChat, setActiveChat, getMessages, sendMessage, messagesLoading, setActiveCall } = useStore()
   const theme = useTheme()
   const isMobile = useIsMobile()
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  const photoInputRef = useRef(null)
 
   const messages = getMessages()
 
@@ -84,6 +87,21 @@ export default function ChatWindow() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
+    }
+  }
+
+  const handlePhotoSend = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPhoto(true)
+    try {
+      const mediaUrl = await uploadToCloudinary(file, 'chat-images')
+      await sendMessage('', mediaUrl)
+    } catch (err) {
+      console.error('photo send failed:', err)
+    } finally {
+      setUploadingPhoto(false)
+      e.target.value = ''
     }
   }
 
@@ -160,6 +178,20 @@ export default function ChatWindow() {
           <div style={{ fontWeight: 700, fontSize: 16, color: textPrimary }}>{chatName}</div>
           <div style={{ fontSize: 12, color: textSecondary }}>{chatSubtitle}</div>
         </div>
+        {activeChat.type === 'dm' && (
+          <button
+            onClick={() => setActiveCall({ partnerId: activeChat.id, partnerUser: activeChat.user, mode: 'calling' })}
+            style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: theme.isDark ? '#2d2d2d' : '#f3f4f6',
+              color: textPrimary, fontSize: 18,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            title="視訊通話"
+          >
+            📹
+          </button>
+        )}
         {activeChat.type === 'group' && (
           <button
             onClick={() => setShowInfo(true)}
@@ -230,6 +262,25 @@ export default function ChatWindow() {
         borderTop: `1px solid ${borderColor}`,
         display: 'flex', gap: 10, alignItems: 'flex-end',
       }}>
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handlePhotoSend}
+        />
+        <button
+          onClick={() => photoInputRef.current?.click()}
+          disabled={uploadingPhoto || sending}
+          style={{
+            width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+            background: theme.isDark ? '#2d2d2d' : '#f3f4f6',
+            color: textPrimary, fontSize: 20,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {uploadingPhoto ? '⏳' : '📷'}
+        </button>
         <textarea
           ref={inputRef}
           value={input}

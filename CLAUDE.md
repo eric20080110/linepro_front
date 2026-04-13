@@ -156,3 +156,4 @@ cd server && git push origin main
 | 2026-04-13 | 新增 CLAUDE.md、GEMINI.md |
 | 2026-04-13 | 資料庫從 MongoDB 遷移至 Turso（LibSQL/SQLite，無需 IP 白名單） |
 | 2026-04-13 | 修正手機鍵盤遮擋：body position:fixed + visualViewport 追蹤 |
+| 2026-04-12 | 新增大頭貼（Cloudinary 簽名上傳）、聊天傳照片、語音/視訊通話（WebRTC + Socket.io 信令） |

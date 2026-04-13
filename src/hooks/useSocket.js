@@ -44,6 +44,14 @@ export function useSocket(mongoUserId) {
       useStore.getState().handleMemberLeft(groupId, userId)
     })
 
+    socket.on('incoming_call', (payload) => {
+      useStore.getState().setIncomingCall(payload)
+    })
+
+    socket.on('call_rejected', () => {
+      useStore.getState().setActiveCall(null)
+    })
+
     return () => {
       socket.disconnect()
       useStore.getState().setSocket(null)

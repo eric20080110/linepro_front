@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import useStore from '../../store/useStore'
 import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
+import { uploadToCloudinary } from '../../utils/cloudinaryUpload'
 
 export default function ProfilePanel({ onClose }) {
   const { currentUser, updateProfile } = useStore()
@@ -10,6 +11,25 @@ export default function ProfilePanel({ onClose }) {
   const [nickname, setNickname] = useState(currentUser?.nickname || '')
   const [statusMsg, setStatusMsg] = useState(currentUser?.statusMessage || '')
   const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef(null)
+
+  const handleAvatarClick = () => fileInputRef.current?.click()
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingAvatar(true)
+    try {
+      const url = await uploadToCloudinary(file, 'avatars')
+      await updateProfile({ avatarUrl: url })
+    } catch (err) {
+      console.error('avatar upload failed:', err)
+    } finally {
+      setUploadingAvatar(false)
+      e.target.value = ''
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -36,7 +56,37 @@ export default function ProfilePanel({ onClose }) {
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Avatar user={currentUser} size={80} showStatus />
+          <div
+            style={{ display: 'inline-block', position: 'relative', cursor: 'pointer' }}
+            onClick={handleAvatarClick}
+            title="點擊更換大頭貼"
+          >
+            <Avatar user={currentUser} size={80} showStatus />
+            {uploadingAvatar && (
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                background: 'rgba(0,0,0,0.45)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontSize: 20,
+              }}>⏳</div>
+            )}
+            {!uploadingAvatar && (
+              <div style={{
+                position: 'absolute', bottom: 0, right: 0,
+                width: 24, height: 24, borderRadius: '50%',
+                background: '#06C755', border: '2px solid white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, color: 'white',
+              }}>📷</div>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleAvatarChange}
+          />
           <h2 style={{ marginTop: 12, fontSize: 20, fontWeight: 700, color: '#1a1a1a' }}>{currentUser?.nickname || currentUser?.name}</h2>
           <span style={{
             display: 'inline-block', marginTop: 6,

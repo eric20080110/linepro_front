@@ -55,6 +55,12 @@ const useStore = create((set, get) => ({
   socket: null,
   setSocket: (socket) => set({ socket }),
 
+  // ─── Call state ──────────────────────────────────────────────────────────
+  incomingCall: null,   // { callerId, callerName, offer }
+  activeCall: null,     // { partnerId, partnerUser, mode: 'calling' }
+  setIncomingCall: (call) => set({ incomingCall: call }),
+  setActiveCall:   (call) => set({ activeCall: call }),
+
   // ─── Friends ─────────────────────────────────────────────────────────────
   friends: [],
   friendRequests: [],
@@ -292,14 +298,15 @@ const useStore = create((set, get) => ({
     return messages[key] || []
   },
 
-  sendMessage: async (text) => {
+  sendMessage: async (text, mediaUrl = null) => {
     const { currentUser, activeChat } = get()
-    if (!currentUser || !activeChat || !text.trim()) return
+    if (!currentUser || !activeChat) return
+    if (!text?.trim() && !mediaUrl) return
 
     if (activeChat.type === 'dm') {
-      await messagesApi.sendDM(activeChat.id, text)
+      await messagesApi.sendDM(activeChat.id, text || '', mediaUrl)
     } else {
-      await messagesApi.sendGroup(activeChat.id, text)
+      await messagesApi.sendGroup(activeChat.id, text || '', mediaUrl)
     }
     // Message will arrive via socket 'new_message' event
   },

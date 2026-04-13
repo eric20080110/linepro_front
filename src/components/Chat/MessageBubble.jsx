@@ -40,7 +40,7 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, flexDirection: isMe ? 'row-reverse' : 'row' }}>
           {/* Bubble */}
           <div style={{
-            padding: '10px 14px',
+            padding: msg.mediaUrl && !msg.text ? 4 : '10px 14px',
             borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
             background: isMe ? theme.bubbleMe : bubbleOtherBg,
             color: isMe ? theme.bubbleMeText : bubbleOtherText,
@@ -50,8 +50,28 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
             wordBreak: 'break-word',
             whiteSpace: 'pre-wrap',
             border: isMe ? 'none' : `1px solid ${bubbleOtherBorder}`,
+            overflow: 'hidden',
           }}>
-            {msg.text}
+            {msg.mediaUrl && (
+              <a href={msg.mediaUrl} target="_blank" rel="noreferrer">
+                <img
+                  src={msg.mediaUrl}
+                  alt="圖片"
+                  style={{
+                    display: 'block',
+                    maxWidth: 260,
+                    maxHeight: 280,
+                    borderRadius: msg.text ? '10px 10px 0 0' : 10,
+                    objectFit: 'cover',
+                  }}
+                />
+              </a>
+            )}
+            {msg.text && (
+              <span style={{ display: 'block', padding: msg.mediaUrl ? '8px 10px 6px' : 0 }}>
+                {msg.text}
+              </span>
+            )}
           </div>
 
           {/* Time */}
