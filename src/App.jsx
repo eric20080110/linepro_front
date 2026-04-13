@@ -8,6 +8,7 @@ import { ThemeContext } from './theme/ThemeContext'
 import Sidebar from './components/Sidebar/Sidebar'
 import ChatWindow from './components/Chat/ChatWindow'
 import CallModal from './components/Chat/CallModal'
+import PullToRefresh from './components/Common/PullToRefresh'
 
 export default function App() {
   const { isSignedIn, isLoaded } = useUser()
@@ -83,17 +84,19 @@ export default function App() {
         top: 0, left: 0, right: 0, bottom: 0,
         overflow: 'hidden',
       }}>
-        <Sidebar />
-        <ChatWindow />
-        {callTarget && callPartnerUser && (
-          <CallModal
-            mode={activeCall ? 'calling' : 'incoming'}
-            partnerId={activeCall?.partnerId ?? incomingCall?.callerId}
-            partnerUser={callPartnerUser}
-            offer={incomingCall?.offer}
-            onClose={handleCloseCall}
-          />
-        )}
+        <PullToRefresh isMobile={isMobile}>
+          <Sidebar />
+          <ChatWindow />
+          {callTarget && callPartnerUser && (
+            <CallModal
+              mode={activeCall ? 'calling' : 'incoming'}
+              partnerId={activeCall?.partnerId ?? incomingCall?.callerId}
+              partnerUser={callPartnerUser}
+              offer={incomingCall?.offer}
+              onClose={handleCloseCall}
+            />
+          )}
+        </PullToRefresh>
       </div>
     </ThemeContext.Provider>
   )
