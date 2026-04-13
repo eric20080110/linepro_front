@@ -5,6 +5,7 @@ import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
 import MessageBubble from './MessageBubble'
 import GroupInfoPanel from '../Groups/GroupInfoPanel'
+import DMInfoPanel from './DMInfoPanel'
 import ImagePreviewModal from './ImagePreviewModal'
 import { uploadToCloudinary } from '../../utils/cloudinaryUpload'
 import Icon from '../Common/Icon'
@@ -259,18 +260,32 @@ export default function ChatWindow() {
           <div style={{ fontSize: 12, color: textSecondary }}>{chatSubtitle}</div>
         </div>
         {activeChat.type === 'dm' && (
-          <button
-            onClick={() => setActiveCall({ partnerId: activeChat.id, partnerUser: activeChat.user, mode: 'calling' })}
-            style={{
-              width: 40, height: 40, borderRadius: '50%',
-              background: theme.isDark ? '#2d2d2d' : '#f3f4f6',
-              color: textPrimary, fontSize: 18,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-            title="視訊通話"
-          >
-            <Icon name="video_call" fallback="📹" size={24} style={{ filter: theme.isDark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setActiveCall({ partnerId: activeChat.id, partnerUser: activeChat.user, mode: 'calling' })}
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: theme.isDark ? '#2d2d2d' : '#f3f4f6',
+                color: textPrimary, fontSize: 18,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              title="視訊通話"
+            >
+              <Icon name="video_call" fallback="📹" size={24} style={{ filter: theme.isDark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
+            </button>
+            <button
+              onClick={() => setShowInfo(true)}
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: theme.isDark ? '#2d2d2d' : '#f3f4f6',
+                color: textPrimary, fontSize: 18,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              title="好友資訊"
+            >
+              <Icon name="settings" fallback="⚙️" size={20} style={{ filter: theme.isDark ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
+            </button>
+          </div>
         )}
         {activeChat.type === 'group' && (
           <button
@@ -427,6 +442,10 @@ export default function ChatWindow() {
 
       {showInfo && activeChat.type === 'group' && (
         <GroupInfoPanel group={activeChat.group} onClose={() => setShowInfo(false)} />
+      )}
+
+      {showInfo && activeChat.type === 'dm' && (
+        <DMInfoPanel user={activeChat.user} onClose={() => setShowInfo(false)} />
       )}
 
       {previewImage && (
