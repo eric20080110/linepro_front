@@ -347,32 +347,35 @@ const useStore = create((set, get) => ({
   },
 
   recallMessage: async (messageId) => {
-    await messagesApi.recall(messageId)
-    // Optimistically update locally (socket message_updated may not arrive for sender)
-    set(state => ({
+    // Update locally first, then call API
+    const patchAllKeys = (fn) => set(state => ({
       messages: Object.fromEntries(
-        Object.entries(state.messages).map(([key, msgs]) => [
-          key,
-          msgs.map(m => (m._id || m.id) === messageId
-            ? { ...m, isRecalled: true, text: '', mediaUrl: null }
-            : m
-          ),
-        ])
+        Object.entries(state.messages).map(([key, msgs]) => [key, msgs.map(fn)])
       ),
     }))
+    patchAllKeys(m => (m._id || m.id) === messageId ? { ...m, isRecalled: true, text: '', mediaUrl: null } : m)
+    try {
+      await messagesApi.recall(messageId)
+    } catch (err) {
+      console.error('recallMessage failed:', err)
+      // Revert
+      patchAllKeys(m => (m._id || m.id) === messageId ? { ...m, isRecalled: false } : m)
+    }
   },
 
   pinMessage: async (messageId, pinned) => {
-    await messagesApi.pin(messageId, pinned)
-    // Optimistically update locally
-    set(state => ({
+    const patchAllKeys = (fn) => set(state => ({
       messages: Object.fromEntries(
-        Object.entries(state.messages).map(([key, msgs]) => [
-          key,
-          msgs.map(m => (m._id || m.id) === messageId ? { ...m, isPinned: pinned } : m),
-        ])
+        Object.entries(state.messages).map(([key, msgs]) => [key, msgs.map(fn)])
       ),
     }))
+    patchAllKeys(m => (m._id || m.id) === messageId ? { ...m, isPinned: pinned } : m)
+    try {
+      await messagesApi.pin(messageId, pinned)
+    } catch (err) {
+      console.error('pinMessage failed:', err)
+      patchAllKeys(m => (m._id || m.id) === messageId ? { ...m, isPinned: !pinned } : m)
+    }
   },
 
   reactToMessage: async (messageId, emoji) => {
