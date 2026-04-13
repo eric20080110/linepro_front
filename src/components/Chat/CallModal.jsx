@@ -18,32 +18,53 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
   const remoteVideoRef = useRef(null)
 
   useEffect(() => {
-    let pc
-    let localStr
+    let pc = new RTCPeerConnection(ICE_SERVERS)
+    pcRef.current = pc
+    const iceQueue = []
 
-    async function start() {
-      localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-      setLocalStream(localStr)
-      if (localVideoRef.current) localVideoRef.current.srcObject = localStr
+    pc.ontrack = (e) => {
+      setRemoteStream(e.streams[0])
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]
+      setStatus('通話中')
+    }
 
-      pc = new RTCPeerConnection(ICE_SERVERS)
-      pcRef.current = pc
+    pc.onicecandidate = (e) => {
+      if (e.candidate) {
+        socket?.emit('ice_candidate', { targetId: partnerId, candidate: e.candidate })
+      }
+    }
 
-      localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
-
-      pc.ontrack = (e) => {
-        setRemoteStream(e.streams[0])
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]
+    // Socket event handlers
+    const handleAnswered = async ({ answer }) => {
+      if (pc.signalingState === 'have-local-offer') {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer))
         setStatus('通話中')
       }
-
-      pc.onicecandidate = (e) => {
-        if (e.candidate) {
-          socket?.emit('ice_candidate', { targetId: partnerId, candidate: e.candidate })
-        }
+    }
+    
+    const handleIce = async ({ candidate }) => {
+      if (!candidate) return
+      if (pc.remoteDescription) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {})
+      } else {
+        iceQueue.push(candidate)
       }
+    }
+    
+    const handleEnded = () => hangup(false)
 
+    socket?.on('call_answered', handleAnswered)
+    socket?.on('ice_candidate', handleIce)
+    socket?.on('call_ended', handleEnded)
+
+    async function setupCall() {
       if (mode === 'calling') {
+        const localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+        setLocalStream(localStr)
+        if (localVideoRef.current) localVideoRef.current.srcObject = localStr
+
+        localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
+
         const offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
         socket?.emit('call_offer', {
@@ -53,37 +74,19 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
           callerName: useStore.getState().currentUser?.nickname || useStore.getState().currentUser?.name,
         })
       } else {
-        // incoming: setRemoteDescription first, then answer
+        // incoming
         await pc.setRemoteDescription(new RTCSessionDescription(offer))
-        const answer = await pc.createAnswer()
-        await pc.setLocalDescription(answer)
-        socket?.emit('call_answer', { callerId: partnerId, answer })
-        setStatus('通話中')
+        for (const cand of iceQueue) {
+          await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {})
+        }
+        iceQueue.length = 0
       }
     }
 
-    start().catch(err => {
+    setupCall().catch(err => {
       console.error('call setup failed:', err)
       onClose()
     })
-
-    // Socket event handlers
-    const handleAnswered = async ({ answer }) => {
-      if (pcRef.current?.signalingState === 'have-local-offer') {
-        await pcRef.current.setRemoteDescription(new RTCSessionDescription(answer))
-        setStatus('通話中')
-      }
-    }
-    const handleIce = async ({ candidate }) => {
-      if (pcRef.current && candidate) {
-        await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {})
-      }
-    }
-    const handleEnded = () => hangup(false)
-
-    socket?.on('call_answered', handleAnswered)
-    socket?.on('ice_candidate', handleIce)
-    socket?.on('call_ended', handleEnded)
 
     return () => {
       socket?.off('call_answered', handleAnswered)
@@ -111,10 +114,24 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
   }
 
   // Incoming call — accept
-  const acceptCall = () => {
-    // The useEffect already handles setup for incoming mode
-    // This button is only shown for the "answer" UI variant — which we don't use here
-    // (incoming calls auto-start in useEffect)
+  const acceptCall = async () => {
+    setStatus('連線中...')
+    try {
+      const localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      setLocalStream(localStr)
+      if (localVideoRef.current) localVideoRef.current.srcObject = localStr
+
+      const pc = pcRef.current
+      localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
+
+      const answer = await pc.createAnswer()
+      await pc.setLocalDescription(answer)
+      socket?.emit('call_answer', { callerId: partnerId, answer })
+      setStatus('通話中')
+    } catch (err) {
+      console.error('Failed to accept call:', err)
+      hangup()
+    }
   }
 
   const isIncoming = mode === 'incoming' && status === '來電中...'
@@ -169,7 +186,7 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
       }}>
         {isIncoming ? (
           <>
-            <ControlBtn color="#22c55e" label="接聽" onClick={() => { setStatus('通話中') }}>
+            <ControlBtn color="#22c55e" label="接聽" onClick={acceptCall}>
               <Icon name="call" fallback="📞" size={24} style={{ filter: 'brightness(0) invert(1)' }} />
             </ControlBtn>
             <ControlBtn color="#ef4444" label="拒絕" onClick={() => {
