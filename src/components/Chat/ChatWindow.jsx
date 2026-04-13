@@ -15,14 +15,19 @@ export default function ChatWindow() {
   const [sending, setSending] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
-  const messagesEndRef = useRef(null)
+  const scrollContainerRef = useRef(null)
   const inputRef = useRef(null)
   const photoInputRef = useRef(null)
 
   const messages = getMessages()
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
   }, [messages])
 
   useEffect(() => {
@@ -207,7 +212,10 @@ export default function ChatWindow() {
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px' }}>
+      <div 
+        ref={scrollContainerRef}
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px', overscrollBehaviorY: 'contain' }}
+      >
         {messagesLoading && (
           <div style={{ textAlign: 'center', padding: '40px 0', color: textSecondary, fontSize: 14 }}>
             載入訊息中...
@@ -252,7 +260,6 @@ export default function ChatWindow() {
             />
           )
         })}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
