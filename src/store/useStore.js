@@ -173,16 +173,34 @@ const useStore = create((set, get) => ({
     }))
   },
 
-  updateGroupInList: (group) => {
+  kickGroupMember: async (groupId, userId) => {
+    await groupsApi.kickMember(groupId, userId)
+    // List update will come via socket member_left
+  },
+
+  setGroupMemberAdmin: async (groupId, userId, isAdmin) => {
+    const updated = await groupsApi.setMemberAdmin(groupId, userId, isAdmin)
     set(state => ({
-      groups: state.groups.map(g => g._id === group._id ? group : g),
+      groups: state.groups.map(g => g._id === groupId ? updated : g),
     }))
   },
 
+  updateGroupInList: (group) => {
+    set(state => {
+      if (!group) return state // Should not happen based on current backend but for safety
+      return {
+        groups: state.groups.map(g => g._id === group._id ? group : g),
+      }
+    })
+  },
+
   handleMemberLeft: (groupId, userId) => {
-    const { currentUser } = get()
+    const { currentUser, activeChat, setActiveChat } = get()
     if (userId === currentUser?._id) {
-      set(state => ({ groups: state.groups.filter(g => g._id !== groupId) }))
+      set(state => ({ 
+        groups: state.groups.filter(g => g._id !== groupId),
+        activeChat: activeChat?.id === groupId ? null : activeChat
+      }))
     } else {
       set(state => ({
         groups: state.groups.map(g =>
