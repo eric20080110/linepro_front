@@ -3,7 +3,14 @@ import useStore from '../../store/useStore'
 import Avatar from '../Common/Avatar'
 import Icon from '../Common/Icon'
 
-const ICE_SERVERS = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+const ICE_SERVERS = { 
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun.services.mozilla.com' }
+  ] 
+}
 
 export default function CallModal({ mode, partnerId, partnerUser, offer, onClose }) {
   const socket = useStore(s => s.socket)
@@ -18,11 +25,19 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
   const remoteVideoRef = useRef(null)
 
   useEffect(() => {
-    let pc = new RTCPeerConnection(ICE_SERVERS)
+    const pc = new RTCPeerConnection(ICE_SERVERS)
     pcRef.current = pc
     const iceQueue = []
 
+    const processQueue = async () => {
+      while (iceQueue.length > 0) {
+        const cand = iceQueue.shift()
+        await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e => console.warn('Delayed ICE add failed', e))
+      }
+    }
+
     pc.ontrack = (e) => {
+      console.log('Got remote track:', e.streams[0])
       setRemoteStream(e.streams[0])
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]
       setStatus('通話中')
@@ -39,6 +54,7 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
       if (pc.signalingState === 'have-local-offer') {
         await pc.setRemoteDescription(new RTCSessionDescription(answer))
         setStatus('通話中')
+        await processQueue()
       }
     }
     
@@ -59,27 +75,28 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
 
     async function setupCall() {
       if (mode === 'calling') {
-        const localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-        setLocalStream(localStr)
-        if (localVideoRef.current) localVideoRef.current.srcObject = localStr
+        try {
+          const localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+          setLocalStream(localStr)
+          if (localVideoRef.current) localVideoRef.current.srcObject = localStr
+          localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
 
-        localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
-
-        const offer = await pc.createOffer()
-        await pc.setLocalDescription(offer)
-        socket?.emit('call_offer', {
-          targetId: partnerId,
-          offer,
-          callerId: useStore.getState().currentUser?._id,
-          callerName: useStore.getState().currentUser?.nickname || useStore.getState().currentUser?.name,
-        })
-      } else {
-        // incoming
-        await pc.setRemoteDescription(new RTCSessionDescription(offer))
-        for (const cand of iceQueue) {
-          await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {})
+          const offer = await pc.createOffer()
+          await pc.setLocalDescription(offer)
+          socket?.emit('call_offer', {
+            targetId: partnerId,
+            offer,
+            callerId: useStore.getState().currentUser?._id,
+            callerName: useStore.getState().currentUser?.nickname || useStore.getState().currentUser?.name,
+          })
+        } catch (err) {
+          console.error('Media access failed:', err)
+          alert('無法存取攝影機或麥克風，請檢查瀏覽器權限與 HTTPS 設定')
+          onClose()
         }
-        iceQueue.length = 0
+      } else {
+        // incoming mode: just set the remote description from the offer we already have
+        await pc.setRemoteDescription(new RTCSessionDescription(offer))
       }
     }
 
@@ -98,7 +115,10 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
 
   function hangup(notifyRemote = true) {
     if (notifyRemote) socket?.emit('call_end', { targetId: partnerId })
-    pcRef.current?.close()
+    if (pcRef.current) {
+      pcRef.current.close()
+      pcRef.current = null
+    }
     localStream?.getTracks().forEach(t => t.stop())
     onClose()
   }
@@ -127,9 +147,14 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
       socket?.emit('call_answer', { callerId: partnerId, answer })
+      
+      // Callee also needs to process their queue after answering!
+      const { iceQueue = [] } = {} // Not accessible this way, using the one from closure
+      // The handleIce function already handles it via the iceQueue in the parent scope
       setStatus('通話中')
     } catch (err) {
       console.error('Failed to accept call:', err)
+      alert('接聽失敗，請確認權限')
       hangup()
     }
   }
