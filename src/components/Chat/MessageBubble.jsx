@@ -9,7 +9,8 @@ import { format } from 'date-fns'
 export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyMsg, readCount }) {
   const theme = useTheme()
   const time = format(new Date(msg.timestamp || msg.createdAt), 'HH:mm')
-  const isVideo = msg.mediaUrl?.match(/\.(mp4|webm|ogg|mov)$/i)
+  const isVideo = msg.mediaUrl?.match(/\.(mp4|webm|ogg|mov)$/i) && !msg.mediaUrl?.includes('chat-audio')
+  const isAudio = msg.mediaUrl?.includes('chat-audio')
 
   const bubbleOtherBg     = theme.isDark ? (theme.bubbleOther   || '#2d2d2d') : 'white'
   const bubbleOtherText   = theme.isDark ? (theme.bubbleOtherText || '#f0f0f0') : '#1a1a1a'
@@ -54,7 +55,17 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
             overflow: 'hidden',
           }}>
             {msg.mediaUrl && (
-              isVideo ? (
+              isAudio ? (
+                <audio
+                  controls
+                  src={msg.mediaUrl}
+                  style={{
+                    display: 'block',
+                    maxWidth: 240,
+                    margin: msg.text ? '0 0 8px 0' : 0,
+                  }}
+                />
+              ) : isVideo ? (
                 <video
                   controls
                   src={msg.mediaUrl}

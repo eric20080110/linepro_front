@@ -15,9 +15,15 @@ export default function ChatWindow() {
   const [sending, setSending] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingDuration, setRecordingDuration] = useState(0)
+
   const scrollContainerRef = useRef(null)
   const inputRef = useRef(null)
   const photoInputRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const timerRef = useRef(null)
 
   const messages = getMessages()
 
@@ -108,6 +114,72 @@ export default function ChatWindow() {
       setUploadingPhoto(false)
       e.target.value = ''
     }
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data)
+      }
+
+      mediaRecorder.onstop = async () => {
+        clearInterval(timerRef.current)
+        setRecordingDuration(0)
+        setIsRecording(false)
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const file = new File([audioBlob], 'voice-message.webm', { type: 'audio/webm' })
+        stream.getTracks().forEach(t => t.stop())
+        
+        setSending(true)
+        try {
+          const mediaUrl = await uploadToCloudinary(file, 'chat-audio')
+          await sendMessage('', mediaUrl)
+        } catch (err) {
+          console.error('audio send failed:', err)
+        } finally {
+          setSending(false)
+        }
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+      setRecordingDuration(0)
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(d => d + 1)
+      }, 1000)
+    } catch (err) {
+      console.error('Failed to start recording:', err)
+      alert('無法存取麥克風，請確認權限')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+    }
+  }
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.onstop = () => {
+        clearInterval(timerRef.current)
+        setRecordingDuration(0)
+        setIsRecording(false)
+        mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop())
+      }
+      mediaRecorderRef.current.stop()
+    }
+  }
+
+  const formatDuration = (s) => {
+    const mins = Math.floor(s / 60)
+    const secs = s % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   // ─── Build display list ───────────────────────────────────────────────────
@@ -278,7 +350,7 @@ export default function ChatWindow() {
         />
         <button
           onClick={() => photoInputRef.current?.click()}
-          disabled={uploadingPhoto || sending}
+          disabled={uploadingPhoto || sending || isRecording}
           style={{
             width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
             background: theme.isDark ? '#2d2d2d' : '#f3f4f6',
@@ -288,41 +360,58 @@ export default function ChatWindow() {
         >
           {uploadingPhoto ? '⏳' : '📷'}
         </button>
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={`傳訊息給 ${chatName}...`}
-          rows={1}
-          style={{
+
+        {isRecording ? (
+          <div style={{
             flex: 1, padding: '11px 16px', borderRadius: 24,
-            border: `1.5px solid ${borderColor}`,
-            background: theme.isDark ? '#2d2d2d' : 'white',
-            color: textPrimary,
-            fontSize: 15, resize: 'none', maxHeight: 120,
-            overflowY: 'auto', lineHeight: '1.5',
-            fontFamily: 'inherit', transition: 'border-color 0.2s',
-          }}
-          onFocus={e => e.target.style.borderColor = theme.inputFocus}
-          onBlur={e => e.target.style.borderColor = borderColor}
-          onInput={e => {
-            e.target.style.height = 'auto'
-            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
-          }}
-        />
+            background: theme.isDark ? '#2d2d2d' : '#f9fafb',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            border: `1.5px solid ${theme.primary}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#ef4444', fontWeight: 600 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
+              錄音中... {formatDuration(recordingDuration)}
+            </div>
+            <button onClick={cancelRecording} style={{ color: textSecondary, fontSize: 13, background: 'none' }}>取消</button>
+          </div>
+        ) : (
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={`傳訊息給 ${chatName}...`}
+            rows={1}
+            style={{
+              flex: 1, padding: '11px 16px', borderRadius: 24,
+              border: `1.5px solid ${borderColor}`,
+              background: theme.isDark ? '#2d2d2d' : 'white',
+              color: textPrimary,
+              fontSize: 15, resize: 'none', maxHeight: 120,
+              overflowY: 'auto', lineHeight: '1.5',
+              fontFamily: 'inherit', transition: 'border-color 0.2s',
+            }}
+            onFocus={e => e.target.style.borderColor = theme.inputFocus}
+            onBlur={e => e.target.style.borderColor = borderColor}
+            onInput={e => {
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+            }}
+          />
+        )}
+        
         <button
-          onClick={handleSend}
-          disabled={!input.trim() || sending}
+          onClick={isRecording ? stopRecording : (!input.trim() ? startRecording : handleSend)}
+          disabled={uploadingPhoto || (sending && !isRecording)}
           style={{
             width: 44, height: 44, borderRadius: '50%',
-            background: (input.trim() && !sending) ? theme.buttonPrimary : (theme.isDark ? '#333' : '#e5e7eb'),
+            background: (input.trim() && !sending) || isRecording ? theme.buttonPrimary : (theme.isDark ? '#333' : '#e5e7eb'),
             color: 'white', fontSize: 18,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, transition: 'background 0.2s',
           }}
         >
-          {sending ? '⏳' : '➤'}
+          {sending && !isRecording ? '⏳' : isRecording ? '⬆️' : (!input.trim() ? '🎤' : '➤')}
         </button>
       </div>
 
