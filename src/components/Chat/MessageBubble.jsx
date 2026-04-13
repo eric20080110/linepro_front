@@ -6,7 +6,7 @@ import { format } from 'date-fns'
  * isLastMyMsg  — true when this is the last message sent by me (shows 已讀)
  * readCount    — for DM: 1 if partner has read, 0 if not; for group: number of readers excluding sender
  */
-export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyMsg, readCount }) {
+export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyMsg, readCount, onImageClick }) {
   const theme = useTheme()
   const time = format(new Date(msg.timestamp || msg.createdAt), 'HH:mm')
   const isVideo = msg.mediaUrl?.match(/\.(mp4|webm|ogg|mov)$/i) && !msg.mediaUrl?.includes('chat-audio')
@@ -78,7 +78,10 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
                   }}
                 />
               ) : (
-                <a href={msg.mediaUrl} target="_blank" rel="noreferrer">
+                <div
+                  onClick={() => onImageClick && onImageClick(msg.mediaUrl)}
+                  style={{ cursor: 'zoom-in' }}
+                >
                   <img
                     src={msg.mediaUrl}
                     alt="圖片"
@@ -90,7 +93,7 @@ export default function MessageBubble({ msg, sender, isMe, showAvatar, isLastMyM
                       objectFit: 'cover',
                     }}
                   />
-                </a>
+                </div>
               )
             )}
             {msg.text && (

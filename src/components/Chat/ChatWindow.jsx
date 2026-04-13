@@ -5,6 +5,7 @@ import useIsMobile from '../../hooks/useIsMobile'
 import Avatar from '../Common/Avatar'
 import MessageBubble from './MessageBubble'
 import GroupInfoPanel from '../Groups/GroupInfoPanel'
+import ImagePreviewModal from './ImagePreviewModal'
 import { uploadToCloudinary } from '../../utils/cloudinaryUpload'
 import Icon from '../Common/Icon'
 
@@ -18,6 +19,7 @@ export default function ChatWindow() {
   const [showInfo, setShowInfo] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingDuration, setRecordingDuration] = useState(0)
+  const [previewImage, setPreviewImage] = useState(null)
 
   const scrollContainerRef = useRef(null)
   const inputRef = useRef(null)
@@ -331,6 +333,7 @@ export default function ChatWindow() {
               showAvatar={activeChat.type === 'group'}
               isLastMyMsg={isLastMyMsg}
               readCount={isLastMyMsg ? getReadCount(msg) : 0}
+              onImageClick={setPreviewImage}
             />
           )
         })}
@@ -424,6 +427,10 @@ export default function ChatWindow() {
 
       {showInfo && activeChat.type === 'group' && (
         <GroupInfoPanel group={activeChat.group} onClose={() => setShowInfo(false)} />
+      )}
+
+      {previewImage && (
+        <ImagePreviewModal url={previewImage} onClose={() => setPreviewImage(null)} />
       )}
     </div>
   )
