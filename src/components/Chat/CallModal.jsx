@@ -74,32 +74,48 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
     socket?.on('call_ended', handleEnded)
 
     async function setupCall() {
-      const callType = mode === 'calling' ? useStore.getState().activeCall?.callType : (offer?.callType || 'video')
-      const constraints = { audio: true, video: callType === 'video' }
+      // Extract callType from activeCall (if caller) or from offer (if receiver)
+      const currentCallType = mode === 'calling' 
+        ? useStore.getState().activeCall?.callType 
+        : (offer?.callType || 'video')
+      
+      const constraints = { audio: true, video: currentCallType === 'video' }
 
       if (mode === 'calling') {
         try {
           const localStr = await navigator.mediaDevices.getUserMedia(constraints)
           setLocalStream(localStr)
-          if (localVideoRef.current && callType === 'video') localVideoRef.current.srcObject = localStr
+          if (localVideoRef.current && currentCallType === 'video') localVideoRef.current.srcObject = localStr
           localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
 
-          const offer = await pc.createOffer()
-          await pc.setLocalDescription(offer)
+          const rtcOffer = await pc.createOffer()
+          await pc.setLocalDescription(rtcOffer)
+          
+          // Send signaling message - keep offer clean, pass callType separately
           socket?.emit('call_offer', {
             targetId: partnerId,
-            offer: { ...offer, callType },
+            offer: { 
+              type: rtcOffer.type, 
+              sdp: rtcOffer.sdp,
+              callType: currentCallType // Pass inside the nested object for easier relay
+            },
             callerId: useStore.getState().currentUser?._id,
             callerName: useStore.getState().currentUser?.nickname || useStore.getState().currentUser?.name,
           })
         } catch (err) {
           console.error('Media access failed:', err)
-          alert('無法存取攝影機或麥克風，請檢查瀏覽器權限與 HTTPS 設定')
+          alert('無法存取攝影機或麥克風，請檢查權限')
           onClose()
         }
       } else {
-        // incoming mode: just set the remote description from the offer we already have
-        await pc.setRemoteDescription(new RTCSessionDescription(offer))
+        // incoming mode: carefully reconstruct the RTCSessionDescription without extra fields
+        const rtcOffer = new RTCSessionDescription({
+          type: offer.type,
+          sdp: offer.sdp
+        })
+        await pc.setRemoteDescription(rtcOffer)
+        console.log('Remote description set (incoming)')
+        await processQueue()
       }
     }
 
@@ -148,9 +164,16 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
       const pc = pcRef.current
       localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
 
-      const answer = await pc.createAnswer()
-      await pc.setLocalDescription(answer)
-      socket?.emit('call_answer', { callerId: partnerId, answer })
+      const rtcAnswer = await pc.createAnswer()
+      await pc.setLocalDescription(rtcAnswer)
+      
+      socket?.emit('call_answer', { 
+        callerId: partnerId, 
+        answer: {
+          type: rtcAnswer.type,
+          sdp: rtcAnswer.sdp
+        }
+      })
       
       setStatus('通話中')
     } catch (err) {

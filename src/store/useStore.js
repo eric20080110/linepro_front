@@ -361,12 +361,13 @@ const useStore = create((set, get) => ({
   updateMessageInStore: (updatedMsg) => {
     const { messages } = get()
     let key
+    const msgId = updatedMsg._id || updatedMsg.id
+    
     if (updatedMsg.type === 'dm') {
-      const senderId = updatedMsg.senderId?._id || updatedMsg.senderId
-      const receiverId = updatedMsg.receiverId?._id || updatedMsg.receiverId
-      // We need to find which key this message belongs to. 
-      // Since it's a DM, we check all DM keys in the state.
-      key = Object.keys(messages).find(k => k.startsWith('dm:') && (k.includes(senderId) || k.includes(receiverId)))
+      const senderId = (updatedMsg.senderId?._id || updatedMsg.senderId).toString()
+      const receiverId = (updatedMsg.receiverId?._id || updatedMsg.receiverId || '').toString()
+      // Find the specific DM key
+      key = Object.keys(messages).find(k => k.startsWith('dm:') && k.includes(senderId))
     } else {
       key = `group:${updatedMsg.groupId?._id || updatedMsg.groupId}`
     }
@@ -377,7 +378,7 @@ const useStore = create((set, get) => ({
       messages: {
         ...state.messages,
         [key]: (state.messages[key] || []).map(m => 
-          m._id === (updatedMsg._id || updatedMsg.id) ? { ...m, ...updatedMsg } : m
+          m._id === msgId ? { ...m, ...updatedMsg } : m
         )
       }
     }))
