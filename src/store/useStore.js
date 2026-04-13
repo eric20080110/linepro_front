@@ -348,10 +348,31 @@ const useStore = create((set, get) => ({
 
   recallMessage: async (messageId) => {
     await messagesApi.recall(messageId)
+    // Optimistically update locally (socket message_updated may not arrive for sender)
+    set(state => ({
+      messages: Object.fromEntries(
+        Object.entries(state.messages).map(([key, msgs]) => [
+          key,
+          msgs.map(m => (m._id || m.id) === messageId
+            ? { ...m, isRecalled: true, text: '', mediaUrl: null }
+            : m
+          ),
+        ])
+      ),
+    }))
   },
 
   pinMessage: async (messageId, pinned) => {
     await messagesApi.pin(messageId, pinned)
+    // Optimistically update locally
+    set(state => ({
+      messages: Object.fromEntries(
+        Object.entries(state.messages).map(([key, msgs]) => [
+          key,
+          msgs.map(m => (m._id || m.id) === messageId ? { ...m, isPinned: pinned } : m),
+        ])
+      ),
+    }))
   },
 
   reactToMessage: async (messageId, emoji) => {
