@@ -171,3 +171,4 @@ cd server && git push origin main
 | 2026-04-13 | 新增訊息系統通知、App 啟動自動預抓全站訊息優化效能 |
 | 2026-04-14 | 修復收回訊息後短暫顯示再消失的問題：API 確認後重新套用 recall 狀態，防止 socket 事件競爭條件 |
 | 2026-04-14 | 修復收回/釘選未寫入資料庫：SQL 雙引號改單引號、加 try-catch、改用 db.batch write mode 確保寫入 primary |
+| 2026-04-14 | 通話功能重新設計：修復 ICE 時序競爭、callType 從 SDP 分離、接聽端改為 accept 時才建立 PC、localStream 改用 ref |
