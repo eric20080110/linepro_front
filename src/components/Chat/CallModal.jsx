@@ -23,10 +23,28 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
 
   const pcRef = useRef(null)
   const localStreamRef = useRef(null)
+  // Always-mounted refs (avoid ontrack race condition with conditional rendering)
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
+  const remoteAudioRef = useRef(null)
   const iceQueueRef = useRef([])
   const remoteDescSetRef = useRef(false)
+
+  // ── Helper: assign remote stream to correct media element ─────────────────
+  const applyRemoteStream = useCallback((stream) => {
+    const hasVideoTracks = stream.getVideoTracks().length > 0
+    setHasRemoteVideo(hasVideoTracks)
+
+    if (hasVideoTracks) {
+      // Video stream: video element handles both audio + video
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream
+    } else {
+      // Audio-only stream: use dedicated audio element
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream
+    }
+
+    setStatus('active')
+  }, [])
 
   // ── Helper: set remote description then flush ICE queue ──────────────────
   const setRemoteDesc = useCallback(async (desc) => {
@@ -62,9 +80,7 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
 
     pc.ontrack = (e) => {
       const stream = e.streams[0]
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream
-      setHasRemoteVideo(true)
-      setStatus('active')
+      if (stream) applyRemoteStream(stream)
     }
 
     pc.onconnectionstatechange = () => {
@@ -74,7 +90,7 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
     }
 
     return pc
-  }, [socket, partnerId, hangup])
+  }, [socket, partnerId, hangup, applyRemoteStream])
 
   // ── Caller flow ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -95,6 +111,7 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
       if (cancelled) { localStream.getTracks().forEach(t => t.stop()); return }
 
       localStreamRef.current = localStream
+      // localVideoRef is always in DOM — safe to set directly
       if (localVideoRef.current && callType === 'video') {
         localVideoRef.current.srcObject = localStream
       }
@@ -220,45 +237,49 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
     }}>
-      {/* Remote video — full background (video calls only) */}
-      {showRemoteVideo && (
-        <video
-          ref={remoteVideoRef}
-          autoPlay
-          playsInline
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-      )}
+      {/* Audio element for voice calls (hidden, always mounted) */}
+      <audio ref={remoteAudioRef} autoPlay style={{ display: 'none' }} />
 
-      {/* Avatar + status (shown when no remote video) */}
-      {!showRemoteVideo && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
-          color: 'white', position: 'relative', zIndex: 1,
-        }}>
-          <Avatar user={partnerUser} size={100} />
-          <div style={{ fontSize: 22, fontWeight: 700 }}>{partnerUser?.nickname || partnerUser?.name}</div>
-          <div style={{ fontSize: 15, color: '#aaa' }}>{statusText}</div>
-        </div>
-      )}
+      {/* Remote video — always in DOM so ontrack can set srcObject without race condition */}
+      <video
+        ref={remoteVideoRef}
+        autoPlay
+        playsInline
+        style={{
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
+          objectFit: 'cover',
+          display: showRemoteVideo ? 'block' : 'none',
+        }}
+      />
 
-      {/* Local video PiP (video calls only, when call is active or connecting) */}
-      {isVideo && status !== 'ringing' && (
-        <video
-          ref={localVideoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            position: 'absolute', top: 16, right: 16,
-            width: 100, height: 140,
-            borderRadius: 12, objectFit: 'cover',
-            border: '2px solid rgba(255,255,255,0.3)',
-            zIndex: 2,
-            display: videoOff ? 'none' : 'block',
-          }}
-        />
-      )}
+      {/* Avatar + name — shown whenever remote video is absent (voice call / waiting / no camera) */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+        color: 'white', position: 'relative', zIndex: 1,
+        opacity: showRemoteVideo ? 0 : 1,
+        pointerEvents: 'none',
+      }}>
+        <Avatar user={partnerUser} size={100} />
+        <div style={{ fontSize: 22, fontWeight: 700 }}>{partnerUser?.nickname || partnerUser?.name}</div>
+        <div style={{ fontSize: 15, color: '#aaa' }}>{statusText}</div>
+      </div>
+
+      {/* Local video PiP — always in DOM, visible only during video calls after ringing */}
+      <video
+        ref={localVideoRef}
+        autoPlay
+        playsInline
+        muted
+        style={{
+          position: 'absolute', top: 16, right: 16,
+          width: 100, height: 140,
+          borderRadius: 12, objectFit: 'cover',
+          border: '2px solid rgba(255,255,255,0.3)',
+          zIndex: 2,
+          display: (isVideo && status !== 'ringing' && !videoOff) ? 'block' : 'none',
+        }}
+      />
 
       {/* Controls */}
       <div style={{
