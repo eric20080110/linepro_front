@@ -172,3 +172,4 @@ cd server && git push origin main
 | 2026-04-14 | 修復收回訊息後短暫顯示再消失的問題：API 確認後重新套用 recall 狀態，防止 socket 事件競爭條件 |
 | 2026-04-14 | 修復收回/釘選未寫入資料庫：SQL 雙引號改單引號、加 try-catch、改用 db.batch write mode 確保寫入 primary |
 | 2026-04-14 | 通話功能重新設計：修復 ICE 時序競爭、callType 從 SDP 分離、接聽端改為 accept 時才建立 PC、localStream 改用 ref |
+| 2026-04-14 | 修復通話無語音/視訊：video/audio 元素改為永遠掛載（CSS 隱藏），防止 ontrack 觸發時 ref 為 null；新增 remoteAudioRef 供語音通話使用；對方無開鏡頭時中間顯示頭像與姓名 |
