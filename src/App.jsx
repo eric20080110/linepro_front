@@ -94,6 +94,7 @@ export default function App() {
               partnerId={activeCall?.partnerId ?? incomingCall?.callerId}
               partnerUser={callPartnerUser}
               offer={incomingCall?.offer}
+              callType={activeCall?.callType ?? incomingCall?.callType ?? 'video'}
               onClose={handleCloseCall}
             />
           )}

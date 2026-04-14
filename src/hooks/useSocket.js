@@ -65,8 +65,8 @@ export function useSocket(mongoUserId) {
       useStore.getState().handleMemberLeft(groupId, userId)
     })
 
-    socket.on('incoming_call', (payload) => {
-      useStore.getState().setIncomingCall(payload)
+    socket.on('incoming_call', ({ callerId, callerName, callType, offer }) => {
+      useStore.getState().setIncomingCall({ callerId, callerName, callType: callType || 'video', offer })
     })
 
     socket.on('call_rejected', () => {

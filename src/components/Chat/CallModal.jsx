@@ -1,47 +1,58 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import useStore from '../../store/useStore'
 import Avatar from '../Common/Avatar'
 import Icon from '../Common/Icon'
 
-const ICE_SERVERS = { 
+const ICE_SERVERS = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun.services.mozilla.com' }
-  ] 
+  ],
 }
 
-export default function CallModal({ mode, partnerId, partnerUser, offer, onClose }) {
+export default function CallModal({ mode, partnerId, partnerUser, offer, callType = 'video', onClose }) {
   const socket = useStore(s => s.socket)
-  const [remoteStream, setRemoteStream] = useState(null)
-  const [localStream, setLocalStream] = useState(null)
+  const currentUser = useStore(s => s.currentUser)
+
+  // status: 'ringing' | 'connecting' | 'active'
+  const [status, setStatus] = useState('ringing')
   const [muted, setMuted] = useState(false)
   const [videoOff, setVideoOff] = useState(false)
-  const [status, setStatus] = useState(mode === 'calling' ? '撥打中...' : '來電中...')
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false)
 
   const pcRef = useRef(null)
+  const localStreamRef = useRef(null)
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
+  const iceQueueRef = useRef([])
+  const remoteDescSetRef = useRef(false)
 
-  useEffect(() => {
+  // ── Helper: set remote description then flush ICE queue ──────────────────
+  const setRemoteDesc = useCallback(async (desc) => {
+    const pc = pcRef.current
+    if (!pc) return
+    await pc.setRemoteDescription(new RTCSessionDescription(desc))
+    remoteDescSetRef.current = true
+    for (const c of iceQueueRef.current) {
+      await pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {})
+    }
+    iceQueueRef.current = []
+  }, [])
+
+  // ── Helper: hangup (reads refs, safe from closure issues) ────────────────
+  const hangup = useCallback((notifyRemote = true) => {
+    if (notifyRemote) socket?.emit('call_end', { targetId: partnerId })
+    pcRef.current?.close()
+    pcRef.current = null
+    localStreamRef.current?.getTracks().forEach(t => t.stop())
+    localStreamRef.current = null
+    onClose()
+  }, [socket, partnerId, onClose])
+
+  // ── Helper: build a new RTCPeerConnection with shared handlers ───────────
+  const buildPC = useCallback(() => {
     const pc = new RTCPeerConnection(ICE_SERVERS)
-    pcRef.current = pc
-    const iceQueue = []
-
-    const processQueue = async () => {
-      while (iceQueue.length > 0) {
-        const cand = iceQueue.shift()
-        await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e => console.warn('Delayed ICE add failed', e))
-      }
-    }
-
-    pc.ontrack = (e) => {
-      console.log('Got remote track:', e.streams[0])
-      setRemoteStream(e.streams[0])
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = e.streams[0]
-      setStatus('通話中')
-    }
 
     pc.onicecandidate = (e) => {
       if (e.candidate) {
@@ -49,141 +60,158 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
       }
     }
 
-    // Socket event handlers
-    const handleAnswered = async ({ answer }) => {
-      if (pc.signalingState === 'have-local-offer') {
-        await pc.setRemoteDescription(new RTCSessionDescription(answer))
-        setStatus('通話中')
-        await processQueue()
-      }
+    pc.ontrack = (e) => {
+      const stream = e.streams[0]
+      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream
+      setHasRemoteVideo(true)
+      setStatus('active')
     }
-    
-    const handleIce = async ({ candidate }) => {
-      if (!candidate) return
-      if (pc.remoteDescription) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {})
-      } else {
-        iceQueue.push(candidate)
-      }
-    }
-    
-    const handleEnded = () => hangup(false)
 
-    socket?.on('call_answered', handleAnswered)
-    socket?.on('ice_candidate', handleIce)
-    socket?.on('call_ended', handleEnded)
-
-    async function setupCall() {
-      // Extract callType from activeCall (if caller) or from offer (if receiver)
-      const currentCallType = mode === 'calling' 
-        ? useStore.getState().activeCall?.callType 
-        : (offer?.callType || 'video')
-      
-      const constraints = { audio: true, video: currentCallType === 'video' }
-
-      if (mode === 'calling') {
-        try {
-          const localStr = await navigator.mediaDevices.getUserMedia(constraints)
-          setLocalStream(localStr)
-          if (localVideoRef.current && currentCallType === 'video') localVideoRef.current.srcObject = localStr
-          localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
-
-          const rtcOffer = await pc.createOffer()
-          await pc.setLocalDescription(rtcOffer)
-          
-          // Send signaling message - keep offer clean, pass callType separately
-          socket?.emit('call_offer', {
-            targetId: partnerId,
-            offer: { 
-              type: rtcOffer.type, 
-              sdp: rtcOffer.sdp,
-              callType: currentCallType // Pass inside the nested object for easier relay
-            },
-            callerId: useStore.getState().currentUser?._id,
-            callerName: useStore.getState().currentUser?.nickname || useStore.getState().currentUser?.name,
-          })
-        } catch (err) {
-          console.error('Media access failed:', err)
-          alert('無法存取攝影機或麥克風，請檢查權限')
-          onClose()
-        }
-      } else {
-        // incoming mode: carefully reconstruct the RTCSessionDescription without extra fields
-        const rtcOffer = new RTCSessionDescription({
-          type: offer.type,
-          sdp: offer.sdp
-        })
-        await pc.setRemoteDescription(rtcOffer)
-        console.log('Remote description set (incoming)')
-        await processQueue()
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        hangup(false)
       }
     }
 
-    setupCall().catch(err => {
-      console.error('call setup failed:', err)
-      onClose()
+    return pc
+  }, [socket, partnerId, hangup])
+
+  // ── Caller flow ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (mode !== 'calling') return
+
+    let cancelled = false
+
+    async function startCall() {
+      const constraints = { audio: true, video: callType === 'video' }
+      let localStream
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia(constraints)
+      } catch {
+        alert('無法存取攝影機或麥克風，請確認權限')
+        onClose()
+        return
+      }
+      if (cancelled) { localStream.getTracks().forEach(t => t.stop()); return }
+
+      localStreamRef.current = localStream
+      if (localVideoRef.current && callType === 'video') {
+        localVideoRef.current.srcObject = localStream
+      }
+
+      const pc = buildPC()
+      pcRef.current = pc
+      localStream.getTracks().forEach(track => pc.addTrack(track, localStream))
+
+      const rtcOffer = await pc.createOffer()
+      await pc.setLocalDescription(rtcOffer)
+
+      socket?.emit('call_offer', {
+        targetId: partnerId,
+        offer: { type: rtcOffer.type, sdp: rtcOffer.sdp },
+        callerId: currentUser?._id,
+        callerName: currentUser?.nickname || currentUser?.name,
+        callType,
+      })
+
+      setStatus('ringing')
+    }
+
+    startCall().catch(err => {
+      console.error('startCall failed:', err)
+      if (!cancelled) onClose()
     })
 
-    return () => {
-      socket?.off('call_answered', handleAnswered)
-      socket?.off('ice_candidate', handleIce)
-      socket?.off('call_ended', handleEnded)
-    }
+    return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function hangup(notifyRemote = true) {
-    if (notifyRemote) socket?.emit('call_end', { targetId: partnerId })
-    if (pcRef.current) {
-      pcRef.current.close()
-      pcRef.current = null
+  // ── Socket listeners ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!socket) return
+
+    const handleAnswered = async ({ answer }) => {
+      if (!pcRef.current) return
+      setStatus('connecting')
+      await setRemoteDesc(answer)
     }
-    localStream?.getTracks().forEach(t => t.stop())
-    onClose()
+
+    const handleIce = ({ candidate }) => {
+      if (!candidate) return
+      if (remoteDescSetRef.current && pcRef.current) {
+        pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {})
+      } else {
+        iceQueueRef.current.push(candidate)
+      }
+    }
+
+    const handleEnded = () => hangup(false)
+
+    socket.on('call_answered', handleAnswered)
+    socket.on('ice_candidate', handleIce)
+    socket.on('call_ended', handleEnded)
+
+    return () => {
+      socket.off('call_answered', handleAnswered)
+      socket.off('ice_candidate', handleIce)
+      socket.off('call_ended', handleEnded)
+    }
+  }, [socket, setRemoteDesc, hangup])
+
+  // ── Incoming: accept ──────────────────────────────────────────────────────
+  const acceptCall = async () => {
+    setStatus('connecting')
+    const constraints = { audio: true, video: callType === 'video' }
+    let localStream
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia(constraints)
+    } catch {
+      alert('接聽失敗，請確認權限')
+      hangup(false)
+      return
+    }
+
+    localStreamRef.current = localStream
+    if (localVideoRef.current && callType === 'video') {
+      localVideoRef.current.srcObject = localStream
+    }
+
+    const pc = buildPC()
+    pcRef.current = pc
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream))
+
+    // Set remote first, flush any queued ICE, then answer
+    await setRemoteDesc(offer)
+
+    const rtcAnswer = await pc.createAnswer()
+    await pc.setLocalDescription(rtcAnswer)
+
+    socket?.emit('call_answer', {
+      callerId: partnerId,
+      answer: { type: rtcAnswer.type, sdp: rtcAnswer.sdp },
+    })
   }
 
-  function toggleMute() {
-    localStream?.getAudioTracks().forEach(t => { t.enabled = !t.enabled })
+  // ── Controls ──────────────────────────────────────────────────────────────
+  const toggleMute = () => {
+    localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !t.enabled })
     setMuted(m => !m)
   }
 
-  function toggleVideo() {
-    localStream?.getVideoTracks().forEach(t => { t.enabled = !t.enabled })
+  const toggleVideo = () => {
+    localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = !t.enabled })
     setVideoOff(v => !v)
   }
 
-  // Incoming call — accept
-  const acceptCall = async () => {
-    setStatus('連線中...')
-    const callType = offer?.callType || 'video'
-    try {
-      const localStr = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' })
-      setLocalStream(localStr)
-      if (localVideoRef.current && callType === 'video') localVideoRef.current.srcObject = localStr
+  const isVideo = callType === 'video'
+  const isIncomingRinging = mode === 'incoming' && status === 'ringing'
+  const showRemoteVideo = isVideo && hasRemoteVideo
 
-      const pc = pcRef.current
-      localStr.getTracks().forEach(track => pc.addTrack(track, localStr))
-
-      const rtcAnswer = await pc.createAnswer()
-      await pc.setLocalDescription(rtcAnswer)
-      
-      socket?.emit('call_answer', { 
-        callerId: partnerId, 
-        answer: {
-          type: rtcAnswer.type,
-          sdp: rtcAnswer.sdp
-        }
-      })
-      
-      setStatus('通話中')
-    } catch (err) {
-      console.error('Failed to accept call:', err)
-      alert('接聽失敗，請確認權限')
-      hangup()
-    }
-  }
-
-  const isIncoming = mode === 'incoming' && status === '來電中...'
+  const statusText = {
+    ringing: mode === 'calling' ? '撥打中...' : (isVideo ? '視訊來電' : '語音來電'),
+    connecting: '連線中...',
+    active: '通話中',
+  }[status]
 
   return (
     <div style={{
@@ -192,70 +220,89 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, onClose
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
     }}>
-      {/* Remote video — full background */}
-      {remoteStream ? (
+      {/* Remote video — full background (video calls only) */}
+      {showRemoteVideo && (
         <video
           ref={remoteVideoRef}
           autoPlay
           playsInline
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
-      ) : (
+      )}
+
+      {/* Avatar + status (shown when no remote video) */}
+      {!showRemoteVideo && (
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
           color: 'white', position: 'relative', zIndex: 1,
         }}>
           <Avatar user={partnerUser} size={100} />
           <div style={{ fontSize: 22, fontWeight: 700 }}>{partnerUser?.nickname || partnerUser?.name}</div>
-          <div style={{ fontSize: 15, color: '#aaa' }}>{status}</div>
+          <div style={{ fontSize: 15, color: '#aaa' }}>{statusText}</div>
         </div>
       )}
 
-      {/* Local video PiP */}
-      <video
-        ref={localVideoRef}
-        autoPlay
-        playsInline
-        muted
-        style={{
-          position: 'absolute', top: 16, right: 16,
-          width: 100, height: 140,
-          borderRadius: 12, objectFit: 'cover',
-          border: '2px solid rgba(255,255,255,0.3)',
-          zIndex: 2,
-          display: videoOff ? 'none' : 'block',
-        }}
-      />
+      {/* Local video PiP (video calls only, when call is active or connecting) */}
+      {isVideo && status !== 'ringing' && (
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{
+            position: 'absolute', top: 16, right: 16,
+            width: 100, height: 140,
+            borderRadius: 12, objectFit: 'cover',
+            border: '2px solid rgba(255,255,255,0.3)',
+            zIndex: 2,
+            display: videoOff ? 'none' : 'block',
+          }}
+        />
+      )}
 
       {/* Controls */}
       <div style={{
-        position: 'absolute', bottom: 40,
-        display: 'flex', gap: 20, zIndex: 3,
+        position: 'absolute', bottom: 48,
+        display: 'flex', gap: 24, zIndex: 3,
         alignItems: 'center',
       }}>
-        {isIncoming ? (
+        {isIncomingRinging ? (
           <>
             <ControlBtn color="#22c55e" label="接聽" onClick={acceptCall}>
-              <Icon name="call" fallback="📞" size={24} style={{ filter: 'brightness(0) invert(1)' }} />
+              <Icon name="call" fallback="📞" size={26} style={{ filter: 'brightness(0) invert(1)' }} />
             </ControlBtn>
             <ControlBtn color="#ef4444" label="拒絕" onClick={() => {
               socket?.emit('call_rejected', { callerId: partnerId })
               hangup(false)
             }}>
-              <Icon name="close" fallback="❌" size={24} style={{ filter: 'brightness(0) invert(1)' }} />
+              <Icon name="close" fallback="✕" size={26} style={{ filter: 'brightness(0) invert(1)' }} />
             </ControlBtn>
           </>
         ) : (
           <>
             <ControlBtn color={muted ? '#555' : '#333'} label={muted ? '取消靜音' : '靜音'} onClick={toggleMute}>
-              {muted ? <Icon name="mic_off" fallback="🔇" size={24} style={{ filter: 'brightness(0) invert(1)' }} /> : <Icon name="mic" fallback="🎤" size={24} style={{ filter: 'brightness(0) invert(1)' }} />}
+              <Icon
+                name={muted ? 'mic_off' : 'mic'}
+                fallback={muted ? '🔇' : '🎤'}
+                size={24}
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
             </ControlBtn>
+
             <ControlBtn color="#ef4444" label="掛斷" onClick={() => hangup(true)} size={64}>
               <Icon name="call_end" fallback="📵" size={28} style={{ filter: 'brightness(0) invert(1)' }} />
             </ControlBtn>
-            <ControlBtn color={videoOff ? '#555' : '#333'} label={videoOff ? '開啟鏡頭' : '關閉鏡頭'} onClick={toggleVideo}>
-              {videoOff ? <Icon name="videocam_off" fallback="📷" size={24} style={{ filter: 'brightness(0) invert(1)' }} /> : <Icon name="videocam" fallback="🎥" size={24} style={{ filter: 'brightness(0) invert(1)' }} />}
-            </ControlBtn>
+
+            {isVideo && (
+              <ControlBtn color={videoOff ? '#555' : '#333'} label={videoOff ? '開鏡頭' : '關鏡頭'} onClick={toggleVideo}>
+                <Icon
+                  name={videoOff ? 'videocam_off' : 'videocam'}
+                  fallback={videoOff ? '📷' : '🎥'}
+                  size={24}
+                  style={{ filter: 'brightness(0) invert(1)' }}
+                />
+              </ControlBtn>
+            )}
           </>
         )}
       </div>
@@ -270,10 +317,9 @@ function ControlBtn({ color, label, onClick, children, size = 56 }) {
       style={{
         width: size, height: size, borderRadius: '50%',
         background: color, color: 'white',
-        fontSize: size * 0.4,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        gap: 2,
+        gap: 2, border: 'none', cursor: 'pointer',
       }}
     >
       {children}
