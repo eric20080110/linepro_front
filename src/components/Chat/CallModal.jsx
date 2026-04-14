@@ -37,10 +37,18 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
 
     if (hasVideoTracks) {
       // Video stream: video element handles both audio + video
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = stream
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = stream
+        remoteVideoRef.current.play().catch(() => {})
+      }
+      // Clear audio element to prevent double audio playback
+      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null
     } else {
       // Audio-only stream: use dedicated audio element
-      if (remoteAudioRef.current) remoteAudioRef.current.srcObject = stream
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = stream
+        remoteAudioRef.current.play().catch(() => {})
+      }
     }
 
     setStatus('active')
@@ -79,8 +87,9 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
     }
 
     pc.ontrack = (e) => {
-      const stream = e.streams[0]
-      if (stream) applyRemoteStream(stream)
+      // e.streams[0] can be undefined in some browsers — fall back to wrapping the track
+      const stream = e.streams[0] || new MediaStream([e.track])
+      applyRemoteStream(stream)
     }
 
     pc.onconnectionstatechange = () => {

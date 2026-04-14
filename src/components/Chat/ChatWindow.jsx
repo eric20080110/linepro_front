@@ -12,11 +12,11 @@ import Icon from '../Common/Icon'
 
 export default function ChatWindow() {
 
-  const { 
+  const {
 
-    currentUser, activeChat, setActiveChat, getMessages, sendMessage, 
+    currentUser, activeChat, setActiveChat, getMessages, sendMessage,
 
-    messagesLoading, setActiveCall, jumpToMessageId, replyingTo, setReplyingTo 
+    messagesLoading, setActiveCall, jumpToMessageId, jumpToMessage, replyingTo, setReplyingTo
 
   } = useStore()
 
@@ -41,6 +41,8 @@ export default function ChatWindow() {
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true)
 
   const [showScrollBottom, setShowScrollBottom] = useState(false)
+
+  const [pinnedExpanded, setPinnedExpanded] = useState(false)
 
 
 
@@ -746,29 +748,127 @@ export default function ChatWindow() {
 
         <div style={{
 
-          padding: '8px 16px', background: theme.isDark ? '#222' : '#f9fafb',
+          background: theme.isDark ? '#222' : '#f9fafb',
 
-          borderBottom: `1px solid ${borderColor}`, display: 'flex', alignItems: 'center', gap: 10,
+          borderBottom: `1px solid ${borderColor}`,
 
-          zIndex: 15
+          zIndex: 15,
 
         }}>
 
-          <span style={{ fontSize: 16 }}>📌</span>
+          {/* Collapsed bar — always visible */}
 
-          <div style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontSize: 13, color: textPrimary }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px' }}>
 
-            <b>釘選訊息：</b>{pinnedMessages[pinnedMessages.length - 1].text || '媒體檔案'}
+            <span style={{ fontSize: 15, flexShrink: 0 }}>📌</span>
+
+            {pinnedMessages.length > 1 && (
+
+              <span style={{
+
+                fontSize: 11, fontWeight: 700, color: 'white',
+
+                background: theme.primary, borderRadius: 99,
+
+                padding: '1px 6px', flexShrink: 0,
+
+              }}>{pinnedMessages.length}</span>
+
+            )}
+
+            <div
+
+              onClick={() => jumpToMessage(pinnedMessages[pinnedMessages.length - 1]._id || pinnedMessages[pinnedMessages.length - 1].id)}
+
+              style={{
+
+                flex: 1, overflow: 'hidden', whiteSpace: 'nowrap',
+
+                textOverflow: 'ellipsis', fontSize: 13, color: textPrimary,
+
+                cursor: 'pointer',
+
+              }}
+
+            >
+
+              {pinnedMessages[pinnedMessages.length - 1].text || '媒體檔案'}
+
+            </div>
+
+            <button
+
+              onClick={() => setPinnedExpanded(v => !v)}
+
+              style={{
+
+                flexShrink: 0, background: 'none', fontSize: 12,
+
+                color: textSecondary, padding: '2px 6px',
+
+                border: `1px solid ${borderColor}`, borderRadius: 6, cursor: 'pointer',
+
+              }}
+
+            >{pinnedExpanded ? '收起 ▲' : '展開 ▼'}</button>
 
           </div>
 
-          <button 
+          {/* Expanded list — all pinned messages */}
 
-            onClick={() => jumpToMessage(pinnedMessages[pinnedMessages.length - 1]._id)}
+          {pinnedExpanded && (
 
-            style={{ color: theme.primary, background: 'none', fontSize: 12, fontWeight: 700 }}
+            <div style={{ borderTop: `1px solid ${borderColor}` }}>
 
-          >查看</button>
+              {[...pinnedMessages].reverse().map((msg, i) => (
+
+                <div
+
+                  key={msg._id || msg.id || i}
+
+                  style={{
+
+                    display: 'flex', alignItems: 'center', gap: 8,
+
+                    padding: '7px 14px 7px 36px',
+
+                    borderBottom: i < pinnedMessages.length - 1 ? `1px solid ${borderColor}` : 'none',
+
+                  }}
+
+                >
+
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+
+                    <div style={{ fontSize: 12, color: textSecondary, marginBottom: 1 }}>
+
+                      {msg.senderId?.nickname || msg.senderId?.name || ''}
+
+                    </div>
+
+                    <div style={{ fontSize: 13, color: textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+
+                      {msg.text || '媒體檔案'}
+
+                    </div>
+
+                  </div>
+
+                  <button
+
+                    onClick={() => { jumpToMessage(msg._id || msg.id); setPinnedExpanded(false) }}
+
+                    style={{ flexShrink: 0, color: theme.primary, background: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+
+                  >查看</button>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          )}
 
         </div>
 
