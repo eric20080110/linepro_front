@@ -347,19 +347,33 @@ const useStore = create((set, get) => ({
   },
 
   recallMessage: async (messageId) => {
-    // Update locally first, then call API
     const patchAllKeys = (fn) => set(state => ({
       messages: Object.fromEntries(
         Object.entries(state.messages).map(([key, msgs]) => [key, msgs.map(fn)])
       ),
     }))
-    patchAllKeys(m => (m._id || m.id) === messageId ? { ...m, isRecalled: true, text: '', mediaUrl: null } : m)
+    const applyRecall = () =>
+      patchAllKeys(m => (m._id || m.id) === messageId ? { ...m, isRecalled: true, text: '', mediaUrl: null } : m)
+
+    // Save original for revert
+    let originalMsg = null
+    for (const msgs of Object.values(get().messages)) {
+      const found = msgs.find(m => (m._id || m.id) === messageId)
+      if (found) { originalMsg = found; break }
+    }
+
+    applyRecall() // Optimistic
     try {
       await messagesApi.recall(messageId)
+      applyRecall() // Re-apply after API confirms, in case socket event interfered
     } catch (err) {
       console.error('recallMessage failed:', err)
-      // Revert
-      patchAllKeys(m => (m._id || m.id) === messageId ? { ...m, isRecalled: false } : m)
+      // Revert to original
+      if (originalMsg) {
+        patchAllKeys(m => (m._id || m.id) === messageId ? originalMsg : m)
+      } else {
+        patchAllKeys(m => (m._id || m.id) === messageId ? { ...m, isRecalled: false } : m)
+      }
     }
   },
 
