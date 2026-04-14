@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Avatar from '../Common/Avatar'
+import Icon from '../Common/Icon'
 import { useTheme } from '../../theme/ThemeContext'
 import useStore from '../../store/useStore'
 import useIsMobile from '../../hooks/useIsMobile'
