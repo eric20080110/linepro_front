@@ -32,8 +32,18 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
 
   // ── Helper: assign remote stream to correct media element ─────────────────
   const applyRemoteStream = useCallback((stream) => {
-    const hasVideoTracks = stream.getVideoTracks().length > 0
-    setHasRemoteVideo(hasVideoTracks)
+    const videoTracks = stream.getVideoTracks()
+    const hasVideoTracks = videoTracks.length > 0
+
+    // Track mute state: if track exists but is muted/disabled, treat as no video
+    const isVideoActive = hasVideoTracks && videoTracks.some(t => !t.muted && t.enabled)
+    setHasRemoteVideo(isVideoActive)
+
+    // Listen for mute/unmute on video tracks to update avatar visibility
+    videoTracks.forEach(track => {
+      track.onmute = () => setHasRemoteVideo(false)
+      track.onunmute = () => setHasRemoteVideo(true)
+    })
 
     if (hasVideoTracks) {
       // Video stream: video element handles both audio + video
@@ -257,7 +267,7 @@ export default function CallModal({ mode, partnerId, partnerUser, offer, callTyp
         style={{
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
-          objectFit: 'cover',
+          objectFit: 'contain',
           display: showRemoteVideo ? 'block' : 'none',
         }}
       />

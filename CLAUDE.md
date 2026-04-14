@@ -174,3 +174,4 @@ cd server && git push origin main
 | 2026-04-14 | 通話功能重新設計：修復 ICE 時序競爭、callType 從 SDP 分離、接聽端改為 accept 時才建立 PC、localStream 改用 ref |
 | 2026-04-14 | 修復通話無語音/視訊：video/audio 元素改為永遠掛載（CSS 隱藏），防止 ontrack 觸發時 ref 為 null；新增 remoteAudioRef 供語音通話使用；對方無開鏡頭時中間顯示頭像與姓名 |
 | 2026-04-14 | 修復通話：ontrack 加 e.streams[0] fallback、applyRemoteStream 呼叫 .play() 防止 autoPlay 政策阻擋、清除 remoteAudioRef 防止 video call 雙重音訊；修復釘選：ChatWindow 補上 jumpToMessage 解構（原本 ReferenceError）、支援多個釘選訊息（數字徽章 + 展開/收起清單 + 各自查看跳轉） |
+| 2026-04-14 | 修復視訊通話畫面裁切：remote video 改 objectFit:contain；監聽 video track mute/unmute 事件，對方關鏡頭時自動顯示頭像與姓名 |
